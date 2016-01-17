@@ -30,15 +30,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-public class Main {
-	private static final Logger log = LoggerFactory.getLogger(Main.class);
+
+
+public class MainParser {
+	private static final Logger log = LoggerFactory.getLogger(MainParser.class);
 
 	/**
 	 * The properties, as read from the properties file.
 	 */
 	private static Properties properties = new Properties();
 	
-	public static void main(String[] args) {
+	public static void runParcer(String[] args) {
 		Calendar c0 = Calendar.getInstance();
         long t0 = c0.getTimeInMillis();
         
@@ -56,7 +58,9 @@ public class Main {
 			if (line.hasOption("h")) {
 				HelpFormatter help = new HelpFormatter();
 				help.printHelp("r2rml-parser\n", cmdOptions);
-				System.exit(0);
+				//System.exit(0);
+				throw new NullPointerException("demo");
+
 			}
 
 			if (line.hasOption("p")) {
@@ -65,7 +69,8 @@ public class Main {
 		} catch (ParseException e1) {
 			//e1.printStackTrace();
 			log.error("Error parsing command line arguments.");
-			System.exit(1);
+			//System.exit(0);
+			throw new NullPointerException("demo");
 		}
 		
 		try {
@@ -76,11 +81,13 @@ public class Main {
 		} catch (FileNotFoundException e) {
 			//e.printStackTrace();
 			log.error("Properties file not found (" + propertiesFile + ").");
-			System.exit(1);
+			//System.exit(0);
+			throw new NullPointerException("demo");
 		} catch (IOException e) {
 			//e.printStackTrace();
 			log.error("Error reading properties file (" + propertiesFile + ").");
-			System.exit(1);
+			//System.exit(0);
+			throw new NullPointerException("demo");
 		}
 		
 		ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("app-context.xml");

@@ -50,21 +50,25 @@ public class DatabaseImpl implements Database {
 				Class.forName(driver);
 				String dbConnectionString = properties.getProperty("db.url");
 				if (dbConnectionString == null) {
-                    log.error("The property db.url cannot be empty! It must contain a valid database connection string.");
-                    System.exit(1);
+					String err = "The property db.url cannot be empty! It must contain a valid database connection string.";
+                    log.error(err);
+					throw new RuntimeException(err);
+                    //System.exit(1);
 				}
 				connection = DriverManager.getConnection(dbConnectionString, properties.getProperty("db.login"), properties.getProperty("db.password"));
-			
+
 				log.info("Established source (relational) connection.");
 				return connection;
 			} catch (Exception e) {
-				log.error("Error establishing source (relational) connection! Please check your connection settings.");
-				System.exit(1);
+				String err = "Error establishing source (relational) connection! Please check your connection settings.";
+				log.error(err);
+				throw new RuntimeException(err);
+				//System.exit(0);
 			}
 		} else {
 			return connection;
 		}
-		return null;
+		//return null;
 	}
 	
 	public ResultSet query(String query) {
@@ -77,8 +81,10 @@ public class DatabaseImpl implements Database {
 			Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
 			result = statement.executeQuery(query);
 		} catch (SQLException e) {
-			log.error("Error executing query! Query was: " + query);
-			System.exit(1);
+			String err = "Error executing query! Query was: " + query;
+			log.error(err);
+			throw new RuntimeException(err);
+			//System.exit(1);
 		}
 		return result;
 	}
@@ -99,8 +105,10 @@ public class DatabaseImpl implements Database {
 			
 			preparedStatement.close();
 		} catch (SQLException e) {
-			log.error("Error testing query! Query was: " + query);
-			System.exit(1);
+			String err = "Error testing query! Query was: " + query;
+			log.error(err);
+			throw new RuntimeException(err);
+			//System.exit(1);
 		}
 	}
 		
