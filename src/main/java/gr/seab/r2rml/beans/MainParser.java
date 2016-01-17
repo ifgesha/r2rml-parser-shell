@@ -52,27 +52,7 @@ public class MainParser {
 
 		String propertiesFile = "r2rml.properties";
 		
-		try {
-			CommandLine line = cmdParser.parse(cmdOptions, args);
-			
-			if (line.hasOption("h")) {
-				HelpFormatter help = new HelpFormatter();
-				help.printHelp("r2rml-parser\n", cmdOptions);
-				//System.exit(0);
-				throw new NullPointerException("demo");
 
-			}
-
-			if (line.hasOption("p")) {
-				propertiesFile = line.getOptionValue("p");
-			}
-		} catch (ParseException e1) {
-			//e1.printStackTrace();
-			log.error("Error parsing command line arguments.");
-			//System.exit(0);
-			throw new NullPointerException("demo");
-		}
-		
 		try {
 			if (StringUtils.isNotEmpty(propertiesFile)) {
 				properties.load(new FileInputStream(propertiesFile));
@@ -80,14 +60,16 @@ public class MainParser {
 			}
 		} catch (FileNotFoundException e) {
 			//e.printStackTrace();
-			log.error("Properties file not found (" + propertiesFile + ").");
+			String err = "Properties file not found (" + propertiesFile + ").";
+			log.error(err);
+			throw new RuntimeException(err);
 			//System.exit(0);
-			throw new NullPointerException("demo");
 		} catch (IOException e) {
 			//e.printStackTrace();
-			log.error("Error reading properties file (" + propertiesFile + ").");
+			String err = "Error reading properties file (" + propertiesFile + ").";
+			log.error(err);
+			throw new RuntimeException(err);
 			//System.exit(0);
-			throw new NullPointerException("demo");
 		}
 		
 		ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("app-context.xml");

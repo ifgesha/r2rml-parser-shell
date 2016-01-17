@@ -93,8 +93,10 @@ public class UtilImpl implements Util {
 					try {
 						result = template.getNamespace() + "/" + URLEncoder.encode(result, "UTF-8");
 					} catch (UnsupportedEncodingException e) {
-						log.error("An error occurred: " + e.getMessage());
-						System.exit(1);
+						String err = "An error occurred: " + e.getMessage();
+						log.error(err);
+						throw new RuntimeException(err);
+						//System.exit(1);
 					}
 				} else {
 					result = template.getNamespace() + "/" + result;
@@ -111,8 +113,10 @@ public class UtilImpl implements Util {
 							try {
 								result = result.substring(0, r) + URLEncoder.encode(result.substring(r), "UTF-8");
 							} catch (UnsupportedEncodingException e) {
-								log.error("An error occurred: " + e.getMessage());
-								System.exit(1);
+								String err = "An error occurred: " + e.getMessage();
+								log.error(err);
+								throw new RuntimeException(err);
+								//System.exit(1);
 							}
 						} else {
 							result = result.substring(0, r) + result.substring(r);
@@ -136,10 +140,12 @@ public class UtilImpl implements Util {
 		} else if (driver.contains("oracle")) {
 			return DatabaseType.ORACLE;
 		} else {
-			log.error("Unknown database type.");
-			System.exit(1);
+			String err = "Unknown database type.";
+			log.error(err);
+			throw new RuntimeException(err);
+			//System.exit(1);
 		}
-		return DatabaseType.OTHER;
+		//return DatabaseType.OTHER;
 	}
 
 	public String stripQuotes(String input) {
@@ -297,10 +303,12 @@ public class UtilImpl implements Util {
     	} else if ("unsignedShort".equalsIgnoreCase(dataType)) {
     		return XSDDatatype.XSDunsignedShort;
     	} else {
-    		log.error("Found unknown datatype " + dataType);
-    		System.exit(1);
+			String err = "Found unknown datatype " + dataType;
+    		log.error(err);
+			throw new RuntimeException(err);
+			//System.exit(1);
     	}
-		return null;
+		//return null;
 	}
 	
 	/**
@@ -355,10 +363,12 @@ public class UtilImpl implements Util {
     			|| sqlDataType.equals("timestamptz")) {
         	return XSDDatatype.XSDdateTime;
         } else {
-    		log.error("Found unknown SQL sqlDataType " + sqlDataType);
-    		System.exit(1);
+			String err = "Found unknown SQL sqlDataType " + sqlDataType;
+    		log.error(err);
+			throw new RuntimeException(err);
+    		//System.exit(1);
     	}
-		return null;
+		//return null;
 	}
 	
 	public String md5(ResultSet rs) {

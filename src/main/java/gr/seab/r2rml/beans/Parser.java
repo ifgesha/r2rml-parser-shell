@@ -185,8 +185,10 @@ public class Parser {
 				    				Template template = new Template(rnTemplate.asLiteral(), TermType.LITERAL, baseNs, resultModel);
 							    	subjectMap.setTemplate(template);
 				    			} else {
-				    				log.error("Unknown term type: " + termType + ". Terminating.");
-				    				System.exit(1);
+									String err = "Unknown term type: " + termType + ". Terminating.";
+				    				log.error(err);
+									throw new RuntimeException(err);
+				    				//System.exit(1);
 				    			}
 				    		}
 				    	}
@@ -230,8 +232,10 @@ public class Parser {
 			    				Template template = new Template(templateText, TermType.LITERAL, baseNs, resultModel);
 						    	subjectMap.setTemplate(template);
 			    			} else {
-			    				log.error("Unknown term type: " + termType + ". Terminating.");
-			    				System.exit(1);
+								String err = "Unknown term type: " + termType + ". Terminating.";
+			    				log.error(err);
+								throw new RuntimeException(err);
+			    				//System.exit(1);
 			    			}
 			    		}
 			    	}
@@ -415,8 +419,10 @@ public class Parser {
 			    			} else if ("Literal".equals(termType)) {
 			    				template.setTermType(TermType.LITERAL);
 			    			} else {
-			    				log.error("Unknown term type: " + termType + ". Terminating.");
-			    				System.exit(1);
+								String err = "Unknown term type: " + termType + ". Terminating.";
+			    				log.error(err);
+								throw new RuntimeException(err);
+			    				//System.exit(1);
 			    			}
 			    		}
 			    	}
@@ -641,8 +647,10 @@ public class Parser {
                 rs = db.query("SELECT column_name FROM all_tab_cols WHERE table_name = '" + tableName + "'");
             } else {
                 rs = null;
-                log.error("Unknown database type. Terminating.");
-                System.exit(1);
+				String err = "Unknown database type. Terminating.";
+                log.error(err);
+				throw new RuntimeException(err);
+                //System.exit(1);
             }
 
 			rs.beforeFirst();
@@ -693,8 +701,10 @@ public class Parser {
 		try {
 			mapModel.read(isMap, baseNs, properties.getProperty("mapping.file.type"));
 		} catch (Exception e) {
-			log.error("Error reading mapping file");
-			System.exit(1);
+			String err = "Error reading mapping file";
+			log.error(err);
+			throw new RuntimeException(err);
+			//System.exit(1);
 		}
 		//mapModel.write(System.out, properties.getProperty("mapping.file.type"));
 		
@@ -706,8 +716,10 @@ public class Parser {
 			try {
 				resultBaseModel.read(isRes, baseNs, properties.getProperty("input.model.type"));
 			} catch (Exception e) {
-				log.error("Error reading input model");
-				System.exit(1);
+				String err = "Error reading input model";
+				log.error(err);
+				throw new RuntimeException(err);
+				//System.exit(1);
 			}
 		}
 		//resultBaseModel.write(System.out, properties.getProperty("input.model.type"));

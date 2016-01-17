@@ -478,9 +478,11 @@ public class Generator {
 													parentQueryText += addition;
 												}
 											} else {
-												log.error("In the logical table mapping <" + logicalTableMapping.getUri() + ">, the SQL query that generates the parent triples in the parent logical table mapping <" + l.getUri() + "> contains results from more than one tables. " +
-													" Consider using rr:tableName instead of rr:sqlQuery in the parent logical table mapping. Terminating.");
-												System.exit(1);
+												String err = "In the logical table mapping <" + logicalTableMapping.getUri() + ">, the SQL query that generates the parent triples in the parent logical table mapping <" + l.getUri() + "> contains results from more than one tables. " +
+													" Consider using rr:tableName instead of rr:sqlQuery in the parent logical table mapping. Terminating.";
+												log.error(err);
+												throw new RuntimeException(err);
+												//System.exit(1);
 											}
 											
 											if (verbose) log.info("Modified parent SQL query to " + parentQuery);
