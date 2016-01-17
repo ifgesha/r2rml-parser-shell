@@ -14,7 +14,7 @@ public class MapGenerator {
 
     public String getShema(){
 
-        String out = null;
+        String out = "";
         int t = 0;
 
         if(db.openConnection() != null) {
@@ -44,6 +44,7 @@ public class MapGenerator {
 
         }
 
+        out = getHeadMap() + out;
         return out;
     }
 
@@ -65,7 +66,7 @@ public class MapGenerator {
             if( m.find()){
                 resTriplet +="\n";
                 resTriplet +="	rr:predicateObjectMap [\n";
-                resTriplet +="		rr:predicate ex:\""+m.group(1)+"\";\n";
+                resTriplet +="		rr:predicate ex:"+m.group(1)+";\n";
                 resTriplet +="		rr:objectMap [ rr:column \""+m.group(1)+"\" ];\n";
                 resTriplet +="	];\n";
             }
@@ -80,17 +81,14 @@ public class MapGenerator {
         resultTriplet +="\n";
         resultTriplet +="<#TriplesMap"+t+">\n";
         resultTriplet +="	a rr:TriplesMap;\n";
-        resultTriplet +="	rr:logicalTable [ rr:tableName  \""+tName+"\" ];\n";
+        resultTriplet +="	rr:logicalTable [ rr:tableName  \"\\\""+tName+"\\\"\" ];\n";
         resultTriplet +="	rr:subjectMap [\n";
-        resultTriplet +="		rr:template \"http://data.example.com/"+tName+"/{\""+pkey+"\"}\";\n";
+        resultTriplet +="		rr:template \"http://data.example.com/"+tName+"/{\\\""+pkey+"\\\"}\";\n";
         resultTriplet +="		rr:class <http://example.com/ontology/"+tName+">;\n";
         resultTriplet +="		rr:graph <http://example.com/graph/"+tName+"> ;\n";
         resultTriplet +="	];\n";
         resultTriplet += resTriplet;
         resultTriplet +="	.\n\n";
-
-
-        resultTriplet = getHeadMap() + resultTriplet;
 
         return resultTriplet;
     }
