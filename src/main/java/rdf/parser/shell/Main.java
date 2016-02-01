@@ -194,4 +194,14 @@ public class Main {
             System.out.println(name + " " + line);
         }
     }
+
+    public static void CreateOWL() {
+        System.out.println("CreateOWL");
+
+        OWLgenerator owlGen = new OWLgenerator();
+        owlGen.setDb(db);
+        owlGen.setLog(log);
+        String tripletMap =  owlGen.getShema();
+
+    }
 }

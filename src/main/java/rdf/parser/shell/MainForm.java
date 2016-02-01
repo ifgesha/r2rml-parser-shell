@@ -41,6 +41,7 @@ public class MainForm extends JFrame{
     public JTextPane textPane1;
     public JScrollPane LogPanel;
     private JButton parseDBButton;
+    private JButton createOWLButton;
 
 
     public MainForm(){
@@ -92,6 +93,16 @@ public class MainForm extends JFrame{
                 Main.ParceDB();
             }
         });
+
+        createOWLButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                System.out.println("click createOWLButton");
+                Main.CreateOWL();
+            }
+        });
+
 
     }
 
