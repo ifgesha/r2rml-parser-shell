@@ -201,7 +201,8 @@ public class Main {
         OWLgenerator owlGen = new OWLgenerator();
         owlGen.setDb(db);
         owlGen.setLog(log);
-        String tripletMap =  owlGen.getShema();
+        //String tripletMap =  owlGen.getShema();
+        owlGen.test();
 
     }
 }
