@@ -1,5 +1,12 @@
 package rdf.parser.shell;
 
+import com.hp.hpl.jena.ontology.DatatypeProperty;
+import com.hp.hpl.jena.ontology.OntClass;
+import com.hp.hpl.jena.ontology.OntModel;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.ResourceFactory;
+
+import java.io.FileOutputStream;
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.HashMap;
@@ -31,56 +38,75 @@ public class OWLgenerator {
 
 
 
+    // Create an empty ontology model
+    OntModel my_model = ModelFactory.createOntologyModel();
+    String baseURI = "http://www.damp1r.ru";
+    String ns = baseURI + "#";
+
+
 
 
     public void test(){
         Connection connection = db.openConnection();
         if(db.openConnection() != null) {
 
-            Map<Integer, String> jdbcMappings = getAllJdbcTypeNames();
-
             try{
+                // Имя текущей базы
+                ResultSet result =  db.query("SELECT DATABASE()");
+                result.next();
+                String dbName = result.getString(1);
 
-                DatabaseMetaData databaseMetaData = connection.getMetaData();
 
-                //Listing Tables
-                // http://docs.oracle.com/javase/6/docs/api/java/sql/DatabaseMetaData.html#getTables%28java.lang.String,%20java.lang.String,%20java.lang.String,%20java.lang.String%5b%5d%29
-                ResultSet result = databaseMetaData.getTables(null, null,null,null);
+                // Выбор information_schema там хранятся все данные по базам, таблицам и т.д.
+                db.query("USE `information_schema`");
+
+                // Получить список таблиц
+                result = db.query("SELECT TABLE_NAME FROM `TABLES` WHERE  TABLE_SCHEMA = '"+dbName+"'");
                 while(result.next()) {
-                    String tableName = result.getString(3); // TABLE_NAME - 3
-                    log.info("Listing Tables " + tableName +" -- " + result.getString(9) + "---" + result.getString(10) );
+                    String tableName = result.getString(1);
+                    log.info("Tables "+dbName +"." + tableName);
 
-                    // Listing Columns in a Table
-                    ResultSet resultGetColumns = databaseMetaData.getColumns(null, null,  tableName, null);
-                    while(resultGetColumns.next()){
-                        String columnName = resultGetColumns.getString(4);
-                        String columnType = jdbcMappings.get(resultGetColumns.getInt(5));
-                        log.info("\tColumns in a Table type=" + columnType +"   " + columnName );
+                    // TODo возможно нужно будет как-то классифицировать таблици и создавать классы не для всех
+                    // Создаём  класс из таблицы
+                    OntClass t_class = my_model.createClass(ns+tableName);
+
+
+                    // Получить колонки таблицы
+                    String q =
+                            "SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, "+
+                            "IF(COLUMN_TYPE LIKE '%unsigned', 'YES', 'NO') as IS_UNSIGNED "+
+                            "from information_schema.COLUMNS "+
+                            "where TABLE_NAME='"+tableName+"'";
+                    ResultSet resultColumns = db.query(q);
+
+                    while(resultColumns.next()){
+                        String columnName = resultColumns.getString(1);
+                        String columnType = resultColumns.getString(2);;
+
+
+                        DatatypeProperty dtp = my_model.createDatatypeProperty(ns+ columnName);
+                        dtp.addDomain(t_class);
+
+                        // ToDo нужно сделать преобразование типов данных mysql в типа xsd.
+                        //Пока просто так вставляю но скорее всего будет не валидно
+                        // http://sherdim.ru/pts/semantic_web/REC-owl-guide-20040210_ru.html
+                        // http://sanjeewamalalgoda.blogspot.ru/2011/03/mapping-data-between-sql-typw-and-xsd.html
+                        dtp.addRange(ResourceFactory.createResource("&xds;"+columnType));
                     }
-
-
-
                 }
-/*
-                select COLUMN_NAME,
-                        COLUMN_TYPE,
-                        IS_NULLABLE,
-                IF(COLUMN_TYPE LIKE '%unsigned', 'YES', 'NO') as IS_UNSIGNED
-                from information_schema.COLUMNS
-                #where TABLE_NAME='record1'
-*/
+
 
             }catch (SQLException sqlEx) {
                 sqlEx.printStackTrace();
                 //return sqlEx.toString();
             }
-
-
         }
 
+        my_model.write (System.out, "RDF/XML-ABBREV", ns);
+        //my_model.write (System.out, "RDF/XML", ns);
     }
 
-
+/*
     public Map<Integer, String> getAllJdbcTypeNames() {
         Map<Integer, String> result = new HashMap<Integer, String>();
         for (Field field : Types.class.getFields()) {
@@ -92,7 +118,7 @@ public class OWLgenerator {
         }
         return result;
     }
-
+*/
 
 
     public String getShema(){
@@ -102,6 +128,8 @@ public class OWLgenerator {
 
         if(db.openConnection() != null) try {
            // java.sql.ResultSet rs = db.query(selectQuery.getQuery());
+
+             db.query("USE `information_schema`");
 
             ResultSet rsTable = db.query("SHOW TABLES"); // Получить список таблиц
             while (rsTable.next()) {
@@ -140,7 +168,7 @@ public class OWLgenerator {
             return sqlEx.toString();
         }
 
-        out = getHeadMap() + out;
+        //out = getHeadMap() + out;
         return out;
     }
 
@@ -155,83 +183,10 @@ public class OWLgenerator {
         String result = "<owl:Class rdf:ID=\""+tName+"\"/>";
 
 
-        // Mapping Columns
-/*
-
-        try {
-            ResultSetMetaData rsMeta = rs.getMetaData();
-            if (verbose) log.info("Table name " + rsMeta.getTableName(1));
-            for (int i = 1; i <= rsMeta.getColumnCount(); i++) {
-                if (verbose) log.info("Column name is " + rsMeta.getColumnName(i));
-                if (rsMeta.getColumnName(i).equals(field)) {
-                    String sqlType = rsMeta.getColumnTypeName(i);
-                    if (verbose) log.info("Column " + i + " with name " + rsMeta.getColumnName(i) + " is of type " + sqlType);
-                    return util.findDataTypeFromSql(sqlType);
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-*/
-
 
         return result;
     }
 
-    private static String getOWL(int t, String tName, String tCreate){
-        String resultTriplet = "";
-        String res = "";
-        String pkey = "";
-
-        Pattern pItem = Pattern.compile("  `(.+)` .+");
-        Pattern pK = Pattern.compile("PRIMARY KEY \\(`(.+)`\\)");
-
-
-        String[] lines = tCreate.split("\\r?\\n");
-        for (String str: lines) {
-            Matcher m = pItem.matcher(str);
-       /*     if( m.find()){
-                res +="\n";
-                res +="	rr:predicateObjectMap [\n";
-                res +="		rr:predicate ex:"+m.group(1)+";\n";
-                res +="		rr:objectMap [ rr:column \""+m.group(1)+"\" ];\n";
-                res +="	];\n";
-            }
-*/
-            Matcher k = pK.matcher(str);
-            if( k.find()) {
-                pkey = k.group(1);
-            }
-
-        }
-/*
-        resultTriplet +="\n";
-        resultTriplet +="<#TriplesMap"+t+">\n";
-        resultTriplet +="	a rr:TriplesMap;\n";
-        resultTriplet +="	rr:logicalTable [ rr:tableName  \"\\\""+tName+"\\\"\" ];\n";
-        resultTriplet +="	rr:subjectMap [\n";
-        resultTriplet +="		rr:template \"http://data.example.com/"+tName+"/{\\\""+pkey+"\\\"}\";\n";
-        resultTriplet +="		rr:class <http://example.com/ontology/"+tName+">;\n";
-        resultTriplet +="		rr:graph <http://example.com/graph/"+tName+"> ;\n";
-        resultTriplet +="	];\n";
-        resultTriplet += resTriplet;
-        resultTriplet +="	.\n\n";
-*/
-        return resultTriplet;
-    }
-
-
-    private static String getHeadMap () {
-        String head = "@prefix rr: <http://www.w3.org/ns/r2rml#> .\n" +
-                "@prefix foaf: <http://xmlns.com/foaf/0.1/> .\n" +
-                "@prefix ex: <http://example.com/> .\n" +
-                "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n" +
-                "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n" +
-                "@base <http://example.com/base/> .\n";
-
-        return head;
-    }
 
 
 
