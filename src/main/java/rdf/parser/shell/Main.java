@@ -202,7 +202,7 @@ public class Main {
         owlGen.setDb(db);
         owlGen.setLog(log);
         //String tripletMap =  owlGen.getShema();
-        owlGen.test();
+        owlGen.createOWL();
 
     }
 }

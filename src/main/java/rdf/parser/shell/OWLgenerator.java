@@ -1,18 +1,15 @@
 package rdf.parser.shell;
 
-import com.hp.hpl.jena.ontology.DatatypeProperty;
-import com.hp.hpl.jena.ontology.OntClass;
-import com.hp.hpl.jena.ontology.OntModel;
+import com.hp.hpl.jena.datatypes.BaseDatatype;
+import com.hp.hpl.jena.datatypes.xsd.XSDDatatype;
+import com.hp.hpl.jena.ontology.*;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.ResourceFactory;
 
-import java.io.FileOutputStream;
-import java.lang.reflect.Field;
+
+import java.io.StringWriter;
 import java.sql.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 
 /**
  * Created by Женя on 01.02.2016.
@@ -39,15 +36,18 @@ public class OWLgenerator {
 
 
     // Create an empty ontology model
-    OntModel my_model = ModelFactory.createOntologyModel();
+    OntModel m = ModelFactory.createOntologyModel();
     String baseURI = "http://www.damp1r.ru";
     String ns = baseURI + "#";
 
+    String ns_xds = "http://www.w3.org/2001/XMLSchema#";
+
+    public void createOWL(){
 
 
 
-    public void test(){
-        Connection connection = db.openConnection();
+        OntDocumentManager dm = m.getDocumentManager();
+
         if(db.openConnection() != null) {
 
             try{
@@ -61,38 +61,77 @@ public class OWLgenerator {
                 db.query("USE `information_schema`");
 
                 // Получить список таблиц
-                result = db.query("SELECT TABLE_NAME FROM `TABLES` WHERE  TABLE_SCHEMA = '"+dbName+"'");
+                result = db.query("SELECT TABLE_NAME FROM `TABLES` WHERE  TABLE_SCHEMA = '"+dbName+"' #limit 3" );
                 while(result.next()) {
                     String tableName = result.getString(1);
                     log.info("Tables "+dbName +"." + tableName);
 
                     // TODo возможно нужно будет как-то классифицировать таблици и создавать классы не для всех
                     // Создаём  класс из таблицы
-                    OntClass t_class = my_model.createClass(ns+tableName);
+                    OntClass t_class = m.createClass(ns+tableName);
 
-
-                    // Получить колонки таблицы
-                    String q =
-                            "SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, "+
-                            "IF(COLUMN_TYPE LIKE '%unsigned', 'YES', 'NO') as IS_UNSIGNED "+
-                            "from information_schema.COLUMNS "+
-                            "where TABLE_NAME='"+tableName+"'";
+                    //Создать свойства из колонок таблицы --------------
+                    String  q = "SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, "+
+                                    "IF(COLUMN_TYPE LIKE '%unsigned', 'YES', 'NO') as IS_UNSIGNED "+
+                                    "FROM information_schema.COLUMNS "+
+                                    "WHERE TABLE_SCHEMA = '"+dbName+"' and TABLE_NAME='"+tableName+"'";
                     ResultSet resultColumns = db.query(q);
-
                     while(resultColumns.next()){
                         String columnName = resultColumns.getString(1);
-                        String columnType = resultColumns.getString(2);;
+                        String columnType = resultColumns.getString(2);
 
-
-                        DatatypeProperty dtp = my_model.createDatatypeProperty(ns+ columnName);
-                        dtp.addDomain(t_class);
-
-                        // ToDo нужно сделать преобразование типов данных mysql в типа xsd.
-                        //Пока просто так вставляю но скорее всего будет не валидно
-                        // http://sherdim.ru/pts/semantic_web/REC-owl-guide-20040210_ru.html
+                        // Создать свойства из колонок
+                        DatatypeProperty dp = m.createDatatypeProperty(ns + columnName);
+                        dp.addDomain(t_class);
                         // http://sanjeewamalalgoda.blogspot.ru/2011/03/mapping-data-between-sql-typw-and-xsd.html
-                        dtp.addRange(ResourceFactory.createResource("&xds;"+columnType));
+                        dp.addRange(ResourceFactory.createResource(findDataTypeFromSql(columnType).getURI()));
                     }
+
+                    // Primary key to Inverse Functional Property mapping --------------
+                    // ToDo Не понятно что делать с составными первичными ключами ????
+                    // Составной ключ выглядит как 2 и более строк результата запроса
+                    //
+                    q = "SELECT COLUMN_NAME "+
+                                    "FROM information_schema.KEY_COLUMN_USAGE "+
+                                    "WHERE TABLE_SCHEMA = '"+dbName+"' and TABLE_NAME='"+tableName+"' AND CONSTRAINT_NAME='PRIMARY'";
+                    resultColumns = db.query(q);
+                    while(resultColumns.next()){
+                        String PKeyColumnName = resultColumns.getString(1);
+
+                        // Создать Inverse Functional Property из певичного ключа
+                        InverseFunctionalProperty ifp = m.createInverseFunctionalProperty(ns + PKeyColumnName);
+
+                        // Добавить ограничение
+                        // ToDo Не понятно что делать если тип поля ключа НЕ int
+                        t_class.addSuperClass( m.createMinCardinalityRestriction(null, ifp, 1 ));
+                    }
+
+
+                    // Внешние ключи --------------
+                    // !!!!! такие ключи есть только в таблицах InnoDB
+                    q = "SELECT COLUMN_NAME, constraint_name, referenced_table_name, REFERENCED_COLUMN_NAME  " +
+                            "FROM  information_schema.KEY_COLUMN_USAGE " +
+                            "WHERE  TABLE_SCHEMA = '"+dbName+"' and referenced_table_name IS NOT NULL AND TABLE_NAME='"+tableName+"'";
+                    resultColumns = db.query(q);
+                    while(resultColumns.next()){
+                        String ChildColumnName = resultColumns.getString(1);
+                        String FKeyName = resultColumns.getString(2);
+                        String ParentTableName = resultColumns.getString(3);
+                        String ParentColumnName = resultColumns.getString(4);
+
+
+                        // Создать  Object Property mapping
+                        ObjectProperty op = m.createObjectProperty(ns + ChildColumnName);
+                        op.addDomain(t_class);
+                        op.addRange(ResourceFactory.createResource(ns + ParentColumnName));
+
+                        // ToDo сделать проверки "If foreign key is a primary key or part of a primary key" и доавлять ограничения
+
+
+                    }
+
+
+
                 }
 
 
@@ -102,9 +141,89 @@ public class OWLgenerator {
             }
         }
 
-        my_model.write (System.out, "RDF/XML-ABBREV", ns);
-        //my_model.write (System.out, "RDF/XML", ns);
+
+        //m.write (System.out, "RDF/XML", ns);
+
+        StringWriter out = new StringWriter();
+        m.write (out, "RDF/XML-ABBREV", ns);
+        String result = out.toString();
+        log.info("\n\n----------- OWL -----------\n\n"+result);
+
+
+
     }
+
+
+
+
+
+    public BaseDatatype findDataTypeFromSql(String sqlDataType) {
+        sqlDataType = sqlDataType.toLowerCase();
+        if (sqlDataType.equals("character")
+                || sqlDataType.equals("text")
+                || sqlDataType.equals("longtext")
+                || sqlDataType.equals("tinytext")
+                || sqlDataType.equals("mediumtext")
+                || sqlDataType.contains("varchar")
+                || sqlDataType.contains("char")
+                || sqlDataType.contains("varbit")
+                || sqlDataType.contains("cidr")
+                || sqlDataType.contains("inet")
+                || sqlDataType.contains("macaddr")) {
+            return XSDDatatype.XSDstring;
+            //if the sql field type is a string, it is ok to omit the xsd datatype from the result
+            //return null;
+        } else if (sqlDataType.equals("binary")
+                || sqlDataType.equals("bytea")) {
+            return XSDDatatype.XSDbase64Binary;
+        } else if (sqlDataType.contains("numeric")
+                || sqlDataType.contains("decimal")) {
+            return XSDDatatype.XSDdecimal;
+        } else if (sqlDataType.equals("smallint")
+                || sqlDataType.equals("integer")
+                || sqlDataType.equals("bigint")
+                || sqlDataType.equals("int")
+                || sqlDataType.equals("int2")
+                || sqlDataType.equals("int4")
+                || sqlDataType.equals("int8")
+                || sqlDataType.equals("serial")
+                || sqlDataType.equals("serial4")
+                || sqlDataType.equals("bigserial")) {
+            return XSDDatatype.XSDinteger;
+        } else if (sqlDataType.equals("float")
+                || sqlDataType.equals("float4")
+                || sqlDataType.equals("float8")
+                || sqlDataType.equals("real")
+                || sqlDataType.equals("double precision")
+                || sqlDataType.equals("number")) {
+            return XSDDatatype.XSDdouble;
+        } else if (sqlDataType.equals("boolean")
+                || sqlDataType.equals("bool")) {
+            return XSDDatatype.XSDboolean;
+        } else if (sqlDataType.equals("datetime")) {
+            return XSDDatatype.XSDdateTime;
+        } else if (sqlDataType.equals("date")) {
+            return XSDDatatype.XSDdate;
+        } else if (sqlDataType.equals("time")
+                || sqlDataType.equals("timetz")) {
+            return XSDDatatype.XSDtime;
+        } else if (sqlDataType.equals("timestamp")
+                || sqlDataType.equals("timestamptz")) {
+            return XSDDatatype.XSDdateTime;
+        } else {
+            String err = "Found unknown SQL sqlDataType " + sqlDataType;
+            log.error(err);
+            throw new RuntimeException(err);
+            //System.exit(1);
+        }
+        //return null;
+    }
+
+
+
+
+
+
 
 /*
     public Map<Integer, String> getAllJdbcTypeNames() {
