@@ -81,10 +81,10 @@ public class OWLgenerator {
                         String columnType = resultColumns.getString(2);
 
                         // Создать свойства из колонок
-                        DatatypeProperty dp = m.createDatatypeProperty(ns + columnName);
+                        DatatypeProperty dp = m.createDatatypeProperty(columnName);
                         dp.addDomain(t_class);
                         // http://sanjeewamalalgoda.blogspot.ru/2011/03/mapping-data-between-sql-typw-and-xsd.html
-                        dp.addRange(ResourceFactory.createResource(findDataTypeFromSql(columnType).getURI()));
+                        dp.addRange(ResourceFactory.createResource(owlDLDataTypeFromSql(columnType).getURI()));
                     }
 
                     // Primary key to Inverse Functional Property mapping --------------
@@ -99,7 +99,7 @@ public class OWLgenerator {
                         String PKeyColumnName = resultColumns.getString(1);
 
                         // Создать Inverse Functional Property из певичного ключа
-                        InverseFunctionalProperty ifp = m.createInverseFunctionalProperty(ns + PKeyColumnName);
+                        InverseFunctionalProperty ifp = m.createInverseFunctionalProperty(PKeyColumnName);
 
                         // Добавить ограничение
                         // ToDo Не понятно что делать если тип поля ключа НЕ int
@@ -154,70 +154,73 @@ public class OWLgenerator {
     }
 
 
-
-
-
-    public BaseDatatype findDataTypeFromSql(String sqlDataType) {
+    public BaseDatatype owlDLDataTypeFromSql(String sqlDataType) {
         sqlDataType = sqlDataType.toLowerCase();
-        if (sqlDataType.equals("character")
-                || sqlDataType.equals("text")
-                || sqlDataType.equals("longtext")
+        if (    sqlDataType.equals("char")
+                || sqlDataType.equals("varchar")
+                || sqlDataType.equals("binary")
+                || sqlDataType.equals("varbinary")
+                || sqlDataType.equals("tinyblob ")
                 || sqlDataType.equals("tinytext")
+                || sqlDataType.equals("blob ")
+                || sqlDataType.equals("text")
+                || sqlDataType.equals("mediumblob")
                 || sqlDataType.equals("mediumtext")
-                || sqlDataType.contains("varchar")
-                || sqlDataType.contains("char")
-                || sqlDataType.contains("varbit")
-                || sqlDataType.contains("cidr")
-                || sqlDataType.contains("inet")
-                || sqlDataType.contains("macaddr")) {
+                || sqlDataType.equals("longtext")
+                || sqlDataType.equals("longblob")
+                || sqlDataType.equals("enum")
+                || sqlDataType.equals("set")
+                ) {
             return XSDDatatype.XSDstring;
-            //if the sql field type is a string, it is ok to omit the xsd datatype from the result
-            //return null;
-        } else if (sqlDataType.equals("binary")
-                || sqlDataType.equals("bytea")) {
-            return XSDDatatype.XSDbase64Binary;
-        } else if (sqlDataType.contains("numeric")
-                || sqlDataType.contains("decimal")) {
-            return XSDDatatype.XSDdecimal;
-        } else if (sqlDataType.equals("smallint")
-                || sqlDataType.equals("integer")
-                || sqlDataType.equals("bigint")
-                || sqlDataType.equals("int")
-                || sqlDataType.equals("int2")
-                || sqlDataType.equals("int4")
-                || sqlDataType.equals("int8")
-                || sqlDataType.equals("serial")
-                || sqlDataType.equals("serial4")
-                || sqlDataType.equals("bigserial")) {
-            return XSDDatatype.XSDinteger;
-        } else if (sqlDataType.equals("float")
-                || sqlDataType.equals("float4")
-                || sqlDataType.equals("float8")
-                || sqlDataType.equals("real")
-                || sqlDataType.equals("double precision")
-                || sqlDataType.equals("number")) {
-            return XSDDatatype.XSDdouble;
-        } else if (sqlDataType.equals("boolean")
-                || sqlDataType.equals("bool")) {
+
+        } else if (sqlDataType.equals("bit")
+                || sqlDataType.equals("boolean")) {
             return XSDDatatype.XSDboolean;
-        } else if (sqlDataType.equals("datetime")) {
-            return XSDDatatype.XSDdateTime;
+
+        } else if (sqlDataType.equals("tinyint")) {
+            return XSDDatatype.XSDbyte;
+
+        } else if (sqlDataType.equals("smallint")) {
+            return XSDDatatype.XSDshort;
+
+        } else if (sqlDataType.equals("mediumint")
+                || sqlDataType.equals("int")) {
+            return XSDDatatype.XSDint;
+
+        } else if (sqlDataType.equals("bigint")) {
+            return XSDDatatype.XSDlong;
+
+        } else if (sqlDataType.equals("dec")) {
+            return XSDDatatype.XSDdecimal;
+
+        } else if (sqlDataType.equals("double")
+                || sqlDataType.equals("real")) {
+            return XSDDatatype.XSDdouble;
+
+        } else if (sqlDataType.equals("float")) {
+            return XSDDatatype.XSDfloat;
+
         } else if (sqlDataType.equals("date")) {
             return XSDDatatype.XSDdate;
-        } else if (sqlDataType.equals("time")
-                || sqlDataType.equals("timetz")) {
-            return XSDDatatype.XSDtime;
-        } else if (sqlDataType.equals("timestamp")
-                || sqlDataType.equals("timestamptz")) {
+
+        } else if (sqlDataType.equals("datetime")
+                || sqlDataType.equals("timestamp")) {
             return XSDDatatype.XSDdateTime;
+
+        } else if (sqlDataType.equals("time")) {
+            return XSDDatatype.XSDtime;
+
+        } else if (sqlDataType.equals("year")) {
+            return XSDDatatype.XSDgYear;
+
         } else {
-            String err = "Found unknown SQL sqlDataType " + sqlDataType;
+            String err = "Found unknown mySQL sqlDataType " + sqlDataType;
             log.error(err);
             throw new RuntimeException(err);
-            //System.exit(1);
         }
-        //return null;
     }
+
+
 
 
 
