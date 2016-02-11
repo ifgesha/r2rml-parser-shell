@@ -38,17 +38,15 @@ public class OWLgenerator {
     // Create an empty ontology model
     OntModel m = ModelFactory.createOntologyModel();
     String baseURI = "http://www.damp1r.ru";
+    String sep = "/";
     String ns = baseURI + "#";
 
-    String ns_xds = "http://www.w3.org/2001/XMLSchema#";
+
 
     public void createOWL(){
 
 
-
-        OntDocumentManager dm = m.getDocumentManager();
-
-        if(db.openConnection() != null) {
+        if(m.getDocumentManager() != null) {
 
             try{
                 // Имя текущей базы
@@ -66,9 +64,8 @@ public class OWLgenerator {
                     String tableName = result.getString(1);
                     log.info("Tables "+dbName +"." + tableName);
 
-                    // TODo возможно нужно будет как-то классифицировать таблици и создавать классы не для всех
                     // Создаём  класс из таблицы
-                    OntClass t_class = m.createClass(ns+tableName);
+                    OntClass t_class = m.createClass(baseURI + sep + dbName + sep + tableName);
 
                     //Создать свойства из колонок таблицы --------------
                     String  q = "SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, "+
@@ -81,29 +78,29 @@ public class OWLgenerator {
                         String columnType = resultColumns.getString(2);
 
                         // Создать свойства из колонок
-                        DatatypeProperty dp = m.createDatatypeProperty(columnName);
+                        DatatypeProperty dp = m.createDatatypeProperty(baseURI + sep + dbName + sep + tableName + "#" + columnName);
                         dp.addDomain(t_class);
                         // http://sanjeewamalalgoda.blogspot.ru/2011/03/mapping-data-between-sql-typw-and-xsd.html
                         dp.addRange(ResourceFactory.createResource(owlDLDataTypeFromSql(columnType).getURI()));
                     }
 
                     // Primary key to Inverse Functional Property mapping --------------
-                    // ToDo Не понятно что делать с составными первичными ключами ????
-                    // Составной ключ выглядит как 2 и более строк результата запроса
-                    //
-                    q = "SELECT COLUMN_NAME "+
+                    q = "SELECT count(COLUMN_NAME) as countKey, COLUMN_NAME "+
                                     "FROM information_schema.KEY_COLUMN_USAGE "+
-                                    "WHERE TABLE_SCHEMA = '"+dbName+"' and TABLE_NAME='"+tableName+"' AND CONSTRAINT_NAME='PRIMARY'";
+                                    "WHERE TABLE_SCHEMA = '"+dbName+"' and TABLE_NAME='"+tableName+"' AND CONSTRAINT_NAME='PRIMARY'" +
+                                    "Group By  CONSTRAINT_NAME";
                     resultColumns = db.query(q);
-                    while(resultColumns.next()){
-                        String PKeyColumnName = resultColumns.getString(1);
+                    resultColumns.next();
+
+                    // Если PrimaryKey НЕ составной
+                    if(resultColumns.getInt(1) == 1) {
+                        String PKeyColumnName = resultColumns.getString(2);
 
                         // Создать Inverse Functional Property из певичного ключа
-                        InverseFunctionalProperty ifp = m.createInverseFunctionalProperty(PKeyColumnName);
+                        InverseFunctionalProperty ifp = m.createInverseFunctionalProperty(baseURI + sep + dbName + sep + tableName + "#" + PKeyColumnName);
 
                         // Добавить ограничение
-                        // ToDo Не понятно что делать если тип поля ключа НЕ int
-                        t_class.addSuperClass( m.createMinCardinalityRestriction(null, ifp, 1 ));
+                        t_class.addSuperClass(m.createMinCardinalityRestriction(null, ifp, 1));
                     }
 
 
@@ -112,6 +109,8 @@ public class OWLgenerator {
                     q = "SELECT COLUMN_NAME, constraint_name, referenced_table_name, REFERENCED_COLUMN_NAME  " +
                             "FROM  information_schema.KEY_COLUMN_USAGE " +
                             "WHERE  TABLE_SCHEMA = '"+dbName+"' and referenced_table_name IS NOT NULL AND TABLE_NAME='"+tableName+"'";
+                    log.info("q " + q);
+
                     resultColumns = db.query(q);
                     while(resultColumns.next()){
                         String ChildColumnName = resultColumns.getString(1);
