@@ -87,14 +87,14 @@ public class OWLgenerator {
                     // Primary key to Inverse Functional Property mapping --------------
                     q = "SELECT count(COLUMN_NAME) as countKey, COLUMN_NAME "+
                                     "FROM information_schema.KEY_COLUMN_USAGE "+
-                                    "WHERE TABLE_SCHEMA = '"+dbName+"' and TABLE_NAME='"+tableName+"' AND CONSTRAINT_NAME='PRIMARY'" +
+                                    "WHERE TABLE_SCHEMA = '"+dbName+"' and TABLE_NAME='"+tableName+"' AND CONSTRAINT_NAME='PRIMARY' " +
                                     "Group By  CONSTRAINT_NAME";
                     resultColumns = db.query(q);
                     resultColumns.next();
-
+                    String PKeyColumnName;
                     // Если PrimaryKey НЕ составной
                     if(resultColumns.getInt(1) == 1) {
-                        String PKeyColumnName = resultColumns.getString(2);
+                        PKeyColumnName = resultColumns.getString(2);
 
                         // Создать Inverse Functional Property из певичного ключа
                         InverseFunctionalProperty ifp = m.createInverseFunctionalProperty(baseURI + sep + dbName + sep + tableName + "#" + PKeyColumnName);
@@ -106,27 +106,34 @@ public class OWLgenerator {
 
                     // Внешние ключи --------------
                     // !!!!! такие ключи есть только в таблицах InnoDB
-                    q = "SELECT COLUMN_NAME, constraint_name, referenced_table_name, REFERENCED_COLUMN_NAME  " +
+                    q = "SELECT COLUMN_NAME, REFERENCED_COLUMN_NAME,   count(COLUMN_NAME) as countKey " +
                             "FROM  information_schema.KEY_COLUMN_USAGE " +
-                            "WHERE  TABLE_SCHEMA = '"+dbName+"' and referenced_table_name IS NOT NULL AND TABLE_NAME='"+tableName+"'";
+                            "WHERE  TABLE_SCHEMA = '"+dbName+"' and referenced_table_name IS NOT NULL AND TABLE_NAME='"+tableName+"' " +
+                            "Group By  CONSTRAINT_NAME";
                     log.info("q " + q);
 
                     resultColumns = db.query(q);
                     while(resultColumns.next()){
-                        String ChildColumnName = resultColumns.getString(1);
-                        String FKeyName = resultColumns.getString(2);
-                        String ParentTableName = resultColumns.getString(3);
-                        String ParentColumnName = resultColumns.getString(4);
+
+                        // Если ForeignKey НЕ составной
+                        if(resultColumns.getInt(3) == 1) {
+
+                            String ChildColumnName = resultColumns.getString(1);
+                            String ParentColumnName = resultColumns.getString(2);
+
+                            // Создать  Object Property mapping
+                            ObjectProperty op = m.createObjectProperty(ns + ChildColumnName);
+                            op.addDomain(t_class);
+                            op.addRange(ResourceFactory.createResource(ns + ParentColumnName));
 
 
-                        // Создать  Object Property mapping
-                        ObjectProperty op = m.createObjectProperty(ns + ChildColumnName);
-                        op.addDomain(t_class);
-                        op.addRange(ResourceFactory.createResource(ns + ParentColumnName));
-
-                        // ToDo сделать проверки "If foreign key is a primary key or part of a primary key" и доавлять ограничения
 
 
+
+                                // ToDo сделать проверки "If foreign key is a primary key or part of a primary key" и доавлять ограничения
+
+
+                        }
                     }
 
 
