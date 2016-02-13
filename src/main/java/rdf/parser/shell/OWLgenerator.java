@@ -9,6 +9,8 @@ import com.hp.hpl.jena.rdf.model.ResourceFactory;
 
 import java.io.StringWriter;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.Objects;
 
 
 /**
@@ -40,6 +42,8 @@ public class OWLgenerator {
     String baseURI = "http://www.damp1r.ru";
     String sep = "/";
     String ns = baseURI + "#";
+    String nsDB = "";
+    String nsTable = "";
 
 
 
@@ -54,85 +58,97 @@ public class OWLgenerator {
                 result.next();
                 String dbName = result.getString(1);
 
+                nsDB = baseURI + sep + dbName + sep ;
 
                 // Выбор information_schema там хранятся все данные по базам, таблицам и т.д.
                 db.query("USE `information_schema`");
 
                 // Получить список таблиц
-                result = db.query("SELECT TABLE_NAME FROM `TABLES` WHERE  TABLE_SCHEMA = '"+dbName+"' #limit 3" );
+                result = db.query("SELECT TABLE_NAME FROM `TABLES` WHERE  TABLE_SCHEMA = '"+dbName+"' #and TABLE_NAME in ('customer','borrower')" );
                 while(result.next()) {
                     String tableName = result.getString(1);
                     log.info("Tables "+dbName +"." + tableName);
 
+                    nsTable = nsDB + tableName;
+
+                    ArrayList<String> ExistsResurs = new ArrayList<String>();
+
                     // Создаём  класс из таблицы
-                    OntClass t_class = m.createClass(baseURI + sep + dbName + sep + tableName);
+                    OntClass t_class = m.createClass(nsTable);
 
-                    //Создать свойства из колонок таблицы --------------
-                    String  q = "SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, "+
-                                    "IF(COLUMN_TYPE LIKE '%unsigned', 'YES', 'NO') as IS_UNSIGNED "+
-                                    "FROM information_schema.COLUMNS "+
-                                    "WHERE TABLE_SCHEMA = '"+dbName+"' and TABLE_NAME='"+tableName+"'";
+                    // Primary key to Inverse Functional Property mapping -------------------------------------------------
+                    String q = "SELECT COLUMN_NAME "+
+                            "FROM information_schema.KEY_COLUMN_USAGE "+
+                            "WHERE TABLE_SCHEMA = '"+dbName+"' and TABLE_NAME='"+tableName+"' " +
+                            "AND CONSTRAINT_NAME='PRIMARY' ";
+
                     ResultSet resultColumns = db.query(q);
-                    while(resultColumns.next()){
-                        String columnName = resultColumns.getString(1);
-                        String columnType = resultColumns.getString(2);
 
-                        // Создать свойства из колонок
-                        DatatypeProperty dp = m.createDatatypeProperty(baseURI + sep + dbName + sep + tableName + "#" + columnName);
-                        dp.addDomain(t_class);
-                        // http://sanjeewamalalgoda.blogspot.ru/2011/03/mapping-data-between-sql-typw-and-xsd.html
-                        dp.addRange(ResourceFactory.createResource(owlDLDataTypeFromSql(columnType).getURI()));
+                    ArrayList<String> PKeyPart = new ArrayList<String>();
+                    while(resultColumns.next()) {
+                        PKeyPart.add(resultColumns.getString(1));
                     }
 
-                    // Primary key to Inverse Functional Property mapping --------------
-                    q = "SELECT count(COLUMN_NAME) as countKey, COLUMN_NAME "+
-                                    "FROM information_schema.KEY_COLUMN_USAGE "+
-                                    "WHERE TABLE_SCHEMA = '"+dbName+"' and TABLE_NAME='"+tableName+"' AND CONSTRAINT_NAME='PRIMARY' " +
-                                    "Group By  CONSTRAINT_NAME";
-                    resultColumns = db.query(q);
-                    resultColumns.next();
-                    String PKeyColumnName;
-                    // Если PrimaryKey НЕ составной
-                    if(resultColumns.getInt(1) == 1) {
-                        PKeyColumnName = resultColumns.getString(2);
+                    // Создаём Inverse Functional Property Только если в колонке уникальные значения
+                    // Если PrimaryKey  составной, создавать  Inverse Functional Property НЕ нужно
+                    if(PKeyPart.size() == 1) {
 
                         // Создать Inverse Functional Property из певичного ключа
-                        InverseFunctionalProperty ifp = m.createInverseFunctionalProperty(baseURI + sep + dbName + sep + tableName + "#" + PKeyColumnName);
+                        InverseFunctionalProperty ifp = m.createInverseFunctionalProperty(nsTable + "#" + PKeyPart.get(0));
 
-                        // Добавить ограничение
+                        ExistsResurs.add(PKeyPart.get(0));
+
+                        // Добавить ограничение (Фактически в терминах БД говорим NOT NULL )
                         t_class.addSuperClass(m.createMinCardinalityRestriction(null, ifp, 1));
                     }
 
 
-                    // Внешние ключи --------------
+                    // Внешние ключи --------------------------------------------------------------------------------------
                     // !!!!! такие ключи есть только в таблицах InnoDB
-                    q = "SELECT COLUMN_NAME, REFERENCED_COLUMN_NAME,   count(COLUMN_NAME) as countKey " +
+                     q = "SELECT COLUMN_NAME, REFERENCED_Table_NAME,  REFERENCED_COLUMN_NAME " +
                             "FROM  information_schema.KEY_COLUMN_USAGE " +
-                            "WHERE  TABLE_SCHEMA = '"+dbName+"' and referenced_table_name IS NOT NULL AND TABLE_NAME='"+tableName+"' " +
-                            "Group By  CONSTRAINT_NAME";
+                            "WHERE  TABLE_SCHEMA = '"+dbName+"' and referenced_table_name IS NOT NULL AND TABLE_NAME='"+tableName+"' ";
+
                     log.info("q " + q);
 
                     resultColumns = db.query(q);
                     while(resultColumns.next()){
 
-                        // Если ForeignKey НЕ составной
-                        if(resultColumns.getInt(3) == 1) {
+                        String FKeyColumnName = resultColumns.getString(1);
+                        String ReferencedTableName = resultColumns.getString(2);
+                        String ReferencedColumnName = resultColumns.getString(3);
 
-                            String ChildColumnName = resultColumns.getString(1);
-                            String ParentColumnName = resultColumns.getString(2);
+                        // Создать  Object Property mapping
+                        ObjectProperty op = m.createObjectProperty(nsTable + "#" +FKeyColumnName);
+                        op.addDomain(t_class);
+                        op.addRange(ResourceFactory.createResource(nsDB + ReferencedTableName));
 
-                            // Создать  Object Property mapping
-                            ObjectProperty op = m.createObjectProperty(ns + ChildColumnName);
-                            op.addDomain(t_class);
-                            op.addRange(ResourceFactory.createResource(ns + ParentColumnName));
+                        ExistsResurs.add(FKeyColumnName);
+
+                        // Добавить ограничение ““If foreign key is a primary key or part of a primary key"
+                        if(PKeyPart.contains(FKeyColumnName)){
+                            t_class.addSuperClass(m.createCardinalityRestriction(null, op, 1));
+                        }
+                    }
 
 
+                    //Создать свойства из колонок таблицы -----------------------------------------------------------------
+                    q = "SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, "+
+                            "IF(COLUMN_TYPE LIKE '%unsigned', 'YES', 'NO') as IS_UNSIGNED "+
+                            "FROM information_schema.COLUMNS "+
+                            "WHERE TABLE_SCHEMA = '"+dbName+"' and TABLE_NAME='"+tableName+"'";
+                    resultColumns = db.query(q);
+                    while(resultColumns.next()) {
+                        String columnName = resultColumns.getString(1);
+                        String columnType = resultColumns.getString(2);
 
-
-
-                                // ToDo сделать проверки "If foreign key is a primary key or part of a primary key" и доавлять ограничения
-
-
+                        // ToDo Не знаю нужно это условие или нет
+                        if (!ExistsResurs.contains(columnName)){
+                            // Создать свойства из колонок
+                            DatatypeProperty dp = m.createDatatypeProperty(nsTable + "#" + columnName);
+                            dp.addDomain(t_class);
+                            // http://sanjeewamalalgoda.blogspot.ru/2011/03/mapping-data-between-sql-typw-and-xsd.html
+                            dp.addRange(ResourceFactory.createResource(owlDLDataTypeFromSql(columnType).getURI()));
                         }
                     }
 
