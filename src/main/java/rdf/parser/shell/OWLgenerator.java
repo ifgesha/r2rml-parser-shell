@@ -3,14 +3,20 @@ package rdf.parser.shell;
 import com.hp.hpl.jena.datatypes.BaseDatatype;
 import com.hp.hpl.jena.datatypes.xsd.XSDDatatype;
 import com.hp.hpl.jena.ontology.*;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.ResourceFactory;
+import com.hp.hpl.jena.query.Dataset;
+import com.hp.hpl.jena.query.ReadWrite;
+import com.hp.hpl.jena.rdf.model.*;
+import com.hp.hpl.jena.tdb.TDBFactory;
+import com.hp.hpl.jena.util.FileManager;
+import gr.seab.r2rml.entities.MappingDocument;
+import org.apache.commons.lang.StringUtils;
 
 
+import java.io.InputStream;
 import java.io.StringWriter;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Objects;
+import java.sql.Statement;
+import java.util.*;
 
 
 /**
@@ -29,12 +35,6 @@ public class OWLgenerator {
 
     private Database db;
     private static Log log;
-
-    // Константы описывающие типы таблиц
-    private static final String typeOfTableBase = "base table";
-    private static final String typeOfTableDependent = "dependent table";
-    private static final String typeOfTableComposite = "composite table";
-
 
 
     // Create an empty ontology model
@@ -173,7 +173,85 @@ public class OWLgenerator {
 
 
 
+        WriteTDB ();
+
     }
+
+
+
+
+
+    public void WriteTDB (){
+
+        String jenaTdbDirectory = "tdb_ont4rdb";
+        Model resultModel = m;
+        MappingDocument mappingDocument = new MappingDocument();
+
+        // Очистить содержимое
+        log.info("Clear model to database.");
+        Dataset dataset = TDBFactory.createDataset(jenaTdbDirectory);
+        dataset.begin(ReadWrite.WRITE);
+        Model dm = dataset.getDefaultModel();
+        dm.removeAll();
+        dataset.commit();
+        dataset.end();
+
+
+        log.info("Storing model to database. Model has " + resultModel.size() + " statements.");
+        Calendar c0 = Calendar.getInstance();
+        long t0 = c0.getTimeInMillis();
+
+        //Sync start
+        dataset = TDBFactory.createDataset(jenaTdbDirectory);
+        dataset.begin(ReadWrite.WRITE);
+
+        Model existingDbModel = dataset.getDefaultModel();
+        log.info("Existing model has " + existingDbModel.size() + " statements.");
+
+        List<com.hp.hpl.jena.rdf.model.Statement> statementsToRemove = new ArrayList<com.hp.hpl.jena.rdf.model.Statement>();
+        List<com.hp.hpl.jena.rdf.model.Statement> statementsToAdd = new ArrayList<com.hp.hpl.jena.rdf.model.Statement>();
+
+        /*
+        //first clear the ones from the old model
+        StmtIterator stmtExistingIter = existingDbModel.listStatements();
+        while (stmtExistingIter.hasNext()) {
+            com.hp.hpl.jena.rdf.model.Statement stmt = stmtExistingIter.nextStatement();
+            if (!resultModel.contains(stmt)) {
+                statementsToRemove.add(stmt);
+            }
+        }
+        stmtExistingIter.close();
+        log.info("Will remove " + statementsToRemove.size() + " statements.");
+        */
+
+        //then add the new ones
+        Model differenceModel = resultModel.difference(existingDbModel);
+        StmtIterator stmtDiffIter = differenceModel.listStatements();
+        while (stmtDiffIter.hasNext()) {
+            com.hp.hpl.jena.rdf.model.Statement stmt = stmtDiffIter.nextStatement();
+            statementsToAdd.add(stmt);
+        }
+        stmtDiffIter.close();
+        differenceModel.close();
+        log.info("Will add " + statementsToAdd.size() + " statements.");
+
+        existingDbModel.remove(statementsToRemove);
+        existingDbModel.add(statementsToAdd);
+        dataset.commit();
+        dataset.end();
+
+        //Sync end
+        Calendar c1 = Calendar.getInstance();
+        long t1 = c1.getTimeInMillis();
+        log.info("Updating model in database took " + (t1 - t0) + " milliseconds.");
+        mappingDocument.getTimestamps().add(Calendar.getInstance().getTimeInMillis()); //3 Wrote clean model to tdb.
+
+    }
+
+
+
+
+
 
 
     public BaseDatatype owlDLDataTypeFromSql(String sqlDataType) {
@@ -241,98 +319,6 @@ public class OWLgenerator {
             throw new RuntimeException(err);
         }
     }
-
-
-
-
-
-
-
-
-
-/*
-    public Map<Integer, String> getAllJdbcTypeNames() {
-        Map<Integer, String> result = new HashMap<Integer, String>();
-        for (Field field : Types.class.getFields()) {
-            try {
-                result.put((Integer)field.get(null), field.getName());
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            }
-        }
-        return result;
-    }
-*/
-
-
-    public String getShema(){
-
-        String out = "";
-        int t = 0;
-
-        if(db.openConnection() != null) try {
-           // java.sql.ResultSet rs = db.query(selectQuery.getQuery());
-
-             db.query("USE `information_schema`");
-
-            ResultSet rsTable = db.query("SHOW TABLES"); // Получить список таблиц
-            while (rsTable.next()) {
-                String tName = rsTable.getString(1);
-
-                log.info("Process table " + tName);
-
-                // Получить строение таблици
-                ResultSet rsTableCrata = db.query(" SHOW CREATE TABLE `" + tName + "`");
-                while (rsTableCrata.next()) {
-                    t++;
-                    String tCreate = rsTableCrata.getString(2);
-                    // log.info(" SHOW CREATE TABLE " + tCreate);
-
-                    // Прежде нужно классифицировать тип таблицы
-                    String tClass = classificationOfTables(tCreate);
-                    if (tClass.equals(typeOfTableBase)) {
-                        mappingTableBase(tName, tCreate);
-                    } else
-                    if (tClass.equals(typeOfTableDependent)) {
-                        // ToDo Обработка таблиц данного типа
-                    } else
-                    if (tClass.equals(typeOfTableComposite)) {
-                        // ToDo Обработка таблиц данного типа
-                    }
-
-
-
-
-
-                }
-            }
-
-        } catch (SQLException sqlEx) {
-            sqlEx.printStackTrace();
-            return sqlEx.toString();
-        }
-
-        //out = getHeadMap() + out;
-        return out;
-    }
-
-
-    private static String classificationOfTables(String tCreate){
-        // ToDo Сделать классификатор типов таблиц
-        return typeOfTableBase;
-    }
-
-
-    private static String mappingTableBase(String tName, String tCreate){
-        String result = "<owl:Class rdf:ID=\""+tName+"\"/>";
-
-
-
-        return result;
-    }
-
-
-
 
     public void setDb(Database db) {
         this.db = db;
