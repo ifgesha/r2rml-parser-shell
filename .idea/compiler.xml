@@ -18,15 +18,16 @@
       <profile default="true" name="Default" enabled="false">
         <processorPath useClasspath="true" />
       </profile>
-      <profile default="false" name="Annotation profile for r2rml-parser" enabled="true">
+      <profile default="false" name="Maven default annotation processors profile" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="true" />
+        <module name="r2rml-parser" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="r2rml-parser" target="1.7" />
+      <module name="r2rml-parser" target="1.5" />
     </bytecodeTargetLevel>
   </component>
 </project>

@@ -12,7 +12,9 @@ import gr.seab.r2rml.entities.MappingDocument;
 import org.apache.commons.lang.StringUtils;
 
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.*;
 import java.sql.Statement;
@@ -46,8 +48,8 @@ public class OWLgenerator {
     String nsTable = "";
 
 
+    public String createOWL(String outFormat, boolean writeTDB){
 
-    public void createOWL(){
 
 
         if(m.getDocumentManager() != null) {
@@ -58,7 +60,7 @@ public class OWLgenerator {
                 result.next();
                 String dbName = result.getString(1);
 
-                nsDB = baseURI + sep + dbName + sep ;
+                nsDB = ns + dbName + sep ;
 
                 // Выбор information_schema там хранятся все данные по базам, таблицам и т.д.
                 db.query("USE `information_schema`");
@@ -69,12 +71,12 @@ public class OWLgenerator {
                     String tableName = result.getString(1);
                     log.info("Tables "+dbName +"." + tableName);
 
-                    nsTable = nsDB + tableName;
+                    nsTable = nsDB +tableName + sep;
 
                     ArrayList<String> ExistsResurs = new ArrayList<String>();
 
                     // Создаём  класс из таблицы
-                    OntClass t_class = m.createClass(nsTable);
+                    OntClass t_class = m.createClass(nsDB +tableName);
 
                     // Primary key to Inverse Functional Property mapping -------------------------------------------------
                     String q = "SELECT COLUMN_NAME "+
@@ -94,7 +96,7 @@ public class OWLgenerator {
                     if(PKeyPart.size() == 1) {
 
                         // Создать Inverse Functional Property из певичного ключа
-                        InverseFunctionalProperty ifp = m.createInverseFunctionalProperty(nsTable + "#" + PKeyPart.get(0));
+                        InverseFunctionalProperty ifp = m.createInverseFunctionalProperty(nsTable + PKeyPart.get(0));
 
                         ExistsResurs.add(PKeyPart.get(0));
 
@@ -109,7 +111,7 @@ public class OWLgenerator {
                             "FROM  information_schema.KEY_COLUMN_USAGE " +
                             "WHERE  TABLE_SCHEMA = '"+dbName+"' and referenced_table_name IS NOT NULL AND TABLE_NAME='"+tableName+"' ";
 
-                    log.info("q " + q);
+                    //log.info("q " + q);
 
                     resultColumns = db.query(q);
                     while(resultColumns.next()){
@@ -119,7 +121,7 @@ public class OWLgenerator {
                         String ReferencedColumnName = resultColumns.getString(3);
 
                         // Создать  Object Property mapping
-                        ObjectProperty op = m.createObjectProperty(nsTable + "#" +FKeyColumnName);
+                        ObjectProperty op = m.createObjectProperty(nsTable +FKeyColumnName);
                         op.addDomain(t_class);
                         op.addRange(ResourceFactory.createResource(nsDB + ReferencedTableName));
 
@@ -145,7 +147,7 @@ public class OWLgenerator {
                         // ToDo Не знаю нужно это условие или нет
                         if (!ExistsResurs.contains(columnName)){
                             // Создать свойства из колонок
-                            DatatypeProperty dp = m.createDatatypeProperty(nsTable + "#" + columnName);
+                            DatatypeProperty dp = m.createDatatypeProperty(nsTable + columnName);
                             dp.addDomain(t_class);
                             // http://sanjeewamalalgoda.blogspot.ru/2011/03/mapping-data-between-sql-typw-and-xsd.html
                             dp.addRange(ResourceFactory.createResource(owlDLDataTypeFromSql(columnType).getURI()));
@@ -157,27 +159,40 @@ public class OWLgenerator {
                 }
 
 
+                db.query("USE `"+dbName+"`");
+
+
             }catch (SQLException sqlEx) {
                 sqlEx.printStackTrace();
                 //return sqlEx.toString();
             }
         }
 
+      // log.info("\n\n----------- OWL -----------\n\n"+ont);
 
-        //m.write (System.out, "RDF/XML", ns);
+
+
+        // Префиксы
+        m.setNsPrefix("", ns);
+
+        // Заголовки онтологии
+        m.createOntology( baseURI );
+        Ontology ont = m.getOntology( baseURI );
+        ont.addComment("Auto generate оntology from RDB Shema","en");
+        ont.addVersionInfo("v 1.00");
+        //ont.addImport( m.createResource( "http://example.com/import1" ) );
+        //ont.addImport( m.createResource( "http://example.com/import2" ) );
+
+        //-----------------------------
+
+        if(writeTDB){ WriteTDB ();}
 
         StringWriter out = new StringWriter();
-        m.write (out, "RDF/XML-ABBREV", ns);
-        String result = out.toString();
-        log.info("\n\n----------- OWL -----------\n\n"+result);
+        m.write (out, outFormat, ns);
 
-
-
-        WriteTDB ();
+        return out.toString();
 
     }
-
-
 
 
 
@@ -290,7 +305,8 @@ public class OWLgenerator {
         } else if (sqlDataType.equals("bigint")) {
             return XSDDatatype.XSDlong;
 
-        } else if (sqlDataType.equals("dec")) {
+        } else if (sqlDataType.equals("dec")
+                || sqlDataType.equals("decimal")) {
             return XSDDatatype.XSDdecimal;
 
         } else if (sqlDataType.equals("double")

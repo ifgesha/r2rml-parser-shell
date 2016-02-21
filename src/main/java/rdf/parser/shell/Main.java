@@ -201,8 +201,20 @@ public class Main {
         OWLgenerator owlGen = new OWLgenerator();
         owlGen.setDb(db);
         owlGen.setLog(log);
-        //String tripletMap =  owlGen.getShema();
-        owlGen.createOWL();
+        //String owl =  owlGen.createOWL(properties.getProperty("mapping.file.type"));
+        String owl =  owlGen.createOWL("RDF/XML-ABBREV", false);
+
+        // Записать в файл
+        String file =  ParserPath + "Ontology.rdf";
+        log.info("Write owl to map file " + file);
+        try {
+            PrintWriter writer = new PrintWriter(file, "UTF-8");
+            writer.println(owl);
+            writer.close();
+        } catch (IOException ex) {
+            log.error("Error write map file (" + file + ")." + ex.toString());
+        }
+
 
     }
 }
