@@ -125,7 +125,7 @@
                                 </constraints>
                                 <properties>
                                   <model>
-                                    <item value=""/>
+                                    <item value="RDF/XML-ABBREV"/>
                                     <item value="RDF/XML"/>
                                     <item value="N-TRIPLE"/>
                                     <item value="TURTLE"/>

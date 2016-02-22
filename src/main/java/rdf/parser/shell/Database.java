@@ -59,8 +59,11 @@ public class Database {
             Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
             result = statement.executeQuery(query);
         } catch (SQLException e) {
-            log.error("Error executing query! Query was: " + query);
-            System.exit(1);
+            log.error("Error executing query! Query was: " + query + " \n "+ e.toString());
+
+
+
+            //System.exit(1);
         }
         return result;
     }

@@ -46,12 +46,25 @@ public class Main {
 
 
     public static void CreateMapFile(){
+
+        Database db = new Database();
+        db.setProperties(properties);
+        db.setLog(log);
+
         MapGenerator mg = new MapGenerator();
         mg.setDb(db);
         mg.setLog(log);
-        String tripletMap =  mg.getShema();
+
+
+
+        String tripletMap =  mg.makeR2RML(properties.getProperty("mapping.file.type"));
+        //tripletMap += "\n\n\n"+  mg.makeR2RML("TURTLE", p);
+
+        // String tripletMap =  mg.getShema();
+        //tripletMap += "\n\n\n"+  mg.getShema();
+
         if(tripletMap != null) {
-            //form.textPane1.setText(tripletMap);
+
             // Записать в файл
             String file =  ParserPath + properties.getProperty("mapping.file");
             log.info("Write triplet to file " + file);

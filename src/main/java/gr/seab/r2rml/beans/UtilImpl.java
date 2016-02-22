@@ -334,8 +334,9 @@ public class UtilImpl implements Util {
     			|| sqlDataType.contains("decimal")) {
     		return XSDDatatype.XSDdecimal;
     	} else if (sqlDataType.equals("smallint") 
-    			|| sqlDataType.equals("integer") 
-    			|| sqlDataType.equals("bigint")
+    			|| sqlDataType.equals("integer")
+				|| sqlDataType.equals("bigint")
+				|| sqlDataType.equals("bigint unsigned")  // !!!!!!!!!!!!!!!!!!!!!!!1
     			|| sqlDataType.equals("int")
     			|| sqlDataType.equals("int2")
     			|| sqlDataType.equals("int4")
@@ -360,6 +361,7 @@ public class UtilImpl implements Util {
     			|| sqlDataType.equals("timetz")) {
         	return XSDDatatype.XSDtime;
     	} else if (sqlDataType.equals("timestamp")
+				|| sqlDataType.equals("datetime")  // !!!!!!!!!!!!!!!!!!!!!!!1
     			|| sqlDataType.equals("timestamptz")) {
         	return XSDDatatype.XSDdateTime;
         } else {
