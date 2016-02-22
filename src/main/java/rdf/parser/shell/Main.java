@@ -19,7 +19,6 @@ public class Main {
     public static String ParserPath = "";
     public static String propertiesFile = "r2rml.properties";
 
-    public static Database db = new Database();
 
 
 
@@ -35,14 +34,10 @@ public class Main {
             e.printStackTrace();
         }
 
-
         LoadProperty(propertiesFile);
-        db.setProperties(properties);
-        db.setLog(log);
 
 
     }
-
 
 
     public static void CreateMapFile(){
@@ -55,13 +50,8 @@ public class Main {
         mg.setDb(db);
         mg.setLog(log);
 
-
-
         String tripletMap =  mg.makeR2RML(properties.getProperty("mapping.file.type"));
-        //tripletMap += "\n\n\n"+  mg.makeR2RML("TURTLE", p);
 
-        // String tripletMap =  mg.getShema();
-        //tripletMap += "\n\n\n"+  mg.getShema();
 
         if(tripletMap != null) {
 
@@ -80,7 +70,30 @@ public class Main {
     }
 
 
+    public static void CreateOWL() {
+        System.out.println("CreateOWL");
 
+        Database db = new Database();
+        db.setProperties(properties);
+        db.setLog(log);
+
+        OWLgenerator owlGen = new OWLgenerator();
+        owlGen.setDb(db);
+        owlGen.setLog(log);
+        //String owl =  owlGen.createOWL(properties.getProperty("mapping.file.type"));
+        String owl =  owlGen.createOWL("RDF/XML-ABBREV", false);
+
+        // Записать в файл
+        String file =  ParserPath + "Ontology.rdf";
+        log.info("Write owl to map file " + file);
+        try {
+            PrintWriter writer = new PrintWriter(file, "UTF-8");
+            writer.println(owl);
+            writer.close();
+        } catch (IOException ex) {
+            log.error("Error write map file (" + file + ")." + ex.toString());
+        }
+    }
 
 
 
@@ -174,7 +187,6 @@ public class Main {
             e.printStackTrace();
         }
 
-        db.setProperties(properties);
     }
 
 
@@ -208,26 +220,6 @@ public class Main {
         }
     }
 
-    public static void CreateOWL() {
-        System.out.println("CreateOWL");
-
-        OWLgenerator owlGen = new OWLgenerator();
-        owlGen.setDb(db);
-        owlGen.setLog(log);
-        //String owl =  owlGen.createOWL(properties.getProperty("mapping.file.type"));
-        String owl =  owlGen.createOWL("RDF/XML-ABBREV", false);
-
-        // Записать в файл
-        String file =  ParserPath + "Ontology.rdf";
-        log.info("Write owl to map file " + file);
-        try {
-            PrintWriter writer = new PrintWriter(file, "UTF-8");
-            writer.println(owl);
-            writer.close();
-        } catch (IOException ex) {
-            log.error("Error write map file (" + file + ")." + ex.toString());
-        }
 
 
-    }
 }

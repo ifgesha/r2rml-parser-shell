@@ -26,14 +26,7 @@ public class MapGenerator {
 
 
 
-
-
-
-
-
     Model m = ModelFactory.createDefaultModel();
-
-
 
 
 
@@ -82,6 +75,11 @@ public class MapGenerator {
         Property propObjectMap = m.createProperty(rrNs +"objectMap");
         Property propColumn = m.createProperty(rrNs +"column");
         Property propPredicate = m.createProperty(rrNs +"predicate");
+        Property propParentTriplesMap = m.createProperty(rrNs +"parentTriplesMap");
+        Property propJoinCondition = m.createProperty(rrNs +"joinCondition");
+        Property propChild = m.createProperty(rrNs +"child");
+        Property propParent = m.createProperty(rrNs +"parent");
+
 
 
 
@@ -95,7 +93,7 @@ public class MapGenerator {
                 db.query("USE `information_schema`");
 
                 // Получить список таблиц
-                result = db.query("SELECT TABLE_NAME FROM `TABLES` WHERE  TABLE_SCHEMA = '"+dbName+"' #limit 1" );
+                result = db.query("SELECT TABLE_NAME FROM `TABLES` WHERE  TABLE_SCHEMA = '"+dbName+"' # limit 1" );
                 while(result.next()) {
                     String tableName = result.getString(1);
                     log.info("Tables "+dbName +"." + tableName);
@@ -139,6 +137,40 @@ public class MapGenerator {
                     );
 
 
+                    // Внешние ключи --------------------------------------------------------------------------------------
+                    // !!!!! такие ключи есть только в таблицах InnoDB
+                    q = "SELECT COLUMN_NAME, REFERENCED_Table_NAME,  REFERENCED_COLUMN_NAME " +
+                            "FROM  information_schema.KEY_COLUMN_USAGE " +
+                            "WHERE  TABLE_SCHEMA = '"+dbName+"' and referenced_table_name IS NOT NULL AND TABLE_NAME='"+tableName+"' ";
+
+
+                    resultColumns = db.query(q);
+                    while(resultColumns.next()){
+
+                        String FKeyColumnName = resultColumns.getString(1);
+                        String ReferencedTableName = resultColumns.getString(2);
+                        String ReferencedColumnName = resultColumns.getString(3);
+
+                        // Добавим узел PredicateObjectMap в TriplesMap
+                        res.addProperty(propPredicateObjectMap,
+                                m.createResource()
+                                        .addProperty(propPredicate,  m.createResource(exNs + FKeyColumnName))
+                                        .addProperty(propObjectMap,
+                                                m.createResource()
+                                                        .addProperty(propParentTriplesMap,  m.createResource("#TriplesMap_"+ReferencedTableName))
+                                                        .addProperty(propJoinCondition,
+                                                                m.createResource()
+                                                                        .addProperty(propChild, FKeyColumnName)
+                                                                        .addProperty(propParent, ReferencedColumnName)
+
+                                                        )
+                                        )
+                        );
+
+                    }
+
+
+
 
                     // Колонки таблици в PredicateObjectMap --------------------------------------------
                     q = "SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, "+
@@ -163,91 +195,6 @@ public class MapGenerator {
                     }
 
 
-
-
-
-/*
-
-
-
-                    // Primary key to Inverse Functional Property mapping -------------------------------------------------
-                    String q = "SELECT COLUMN_NAME "+
-                            "FROM information_schema.KEY_COLUMN_USAGE "+
-                            "WHERE TABLE_SCHEMA = '"+dbName+"' and TABLE_NAME='"+tableName+"' " +
-                            "AND CONSTRAINT_NAME='PRIMARY' ";
-
-                    ResultSet resultColumns = db.query(q);
-
-                    ArrayList<String> PKeyPart = new ArrayList<String>();
-                    while(resultColumns.next()) {
-                        PKeyPart.add(resultColumns.getString(1));
-                    }
-
-                    // Создаём Inverse Functional Property Только если в колонке уникальные значения
-                    // Если PrimaryKey  составной, создавать  Inverse Functional Property НЕ нужно
-                    if(PKeyPart.size() == 1) {
-
-                        // Создать Inverse Functional Property из певичного ключа
-                        InverseFunctionalProperty ifp = m.createInverseFunctionalProperty(nsTable + PKeyPart.get(0));
-
-                        ExistsResurs.add(PKeyPart.get(0));
-
-                        // Добавить ограничение (Фактически в терминах БД говорим NOT NULL )
-                        t_class.addSuperClass(m.createMinCardinalityRestriction(null, ifp, 1));
-                    }
-
-
-                    // Внешние ключи --------------------------------------------------------------------------------------
-                    // !!!!! такие ключи есть только в таблицах InnoDB
-                    q = "SELECT COLUMN_NAME, REFERENCED_Table_NAME,  REFERENCED_COLUMN_NAME " +
-                            "FROM  information_schema.KEY_COLUMN_USAGE " +
-                            "WHERE  TABLE_SCHEMA = '"+dbName+"' and referenced_table_name IS NOT NULL AND TABLE_NAME='"+tableName+"' ";
-
-                    //log.info("q " + q);
-
-                    resultColumns = db.query(q);
-                    while(resultColumns.next()){
-
-                        String FKeyColumnName = resultColumns.getString(1);
-                        String ReferencedTableName = resultColumns.getString(2);
-                        String ReferencedColumnName = resultColumns.getString(3);
-
-                        // Создать  Object Property mapping
-                        ObjectProperty op = m.createObjectProperty(nsTable +FKeyColumnName);
-                        op.addDomain(t_class);
-                        op.addRange(ResourceFactory.createResource(nsDB + ReferencedTableName));
-
-                        ExistsResurs.add(FKeyColumnName);
-
-                        // Добавить ограничение ““If foreign key is a primary key or part of a primary key"
-                        if(PKeyPart.contains(FKeyColumnName)){
-                            t_class.addSuperClass(m.createCardinalityRestriction(null, op, 1));
-                        }
-                    }
-
-
-                    //Создать свойства из колонок таблицы -----------------------------------------------------------------
-                    q = "SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, "+
-                            "IF(COLUMN_TYPE LIKE '%unsigned', 'YES', 'NO') as IS_UNSIGNED "+
-                            "FROM information_schema.COLUMNS "+
-                            "WHERE TABLE_SCHEMA = '"+dbName+"' and TABLE_NAME='"+tableName+"'";
-                    resultColumns = db.query(q);
-                    while(resultColumns.next()) {
-                        String columnName = resultColumns.getString(1);
-                        String columnType = resultColumns.getString(2);
-
-                        // ToDo Не знаю нужно это условие или нет
-                        if (!ExistsResurs.contains(columnName)){
-                            // Создать свойства из колонок
-                            DatatypeProperty dp = m.createDatatypeProperty(nsTable + columnName);
-                            dp.addDomain(t_class);
-                            // http://sanjeewamalalgoda.blogspot.ru/2011/03/mapping-data-between-sql-typw-and-xsd.html
-                            dp.addRange(ResourceFactory.createResource(owlDLDataTypeFromSql(columnType).getURI()));
-                        }
-                    }
-
-    */
-
                 }
 
 
@@ -270,121 +217,6 @@ public class MapGenerator {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    public String getShema(){
-
-        String out = "";
-        int t = 0;
-
-        if(db.openConnection() != null) {
-            try {
-                ResultSet rsTable = db.query("SHOW TABLES"); // Получить список таблиц
-                while (rsTable.next()) {
-                    String tName = rsTable.getString(1);
-
-                    log.info("Process table " + tName);
-
-                    // Получить строение таблици
-                    ResultSet rsTableCrata = db.query(" SHOW CREATE TABLE `" + tName + "`");
-                    while (rsTableCrata.next()) {
-                        t++;
-                        String tCreate = rsTableCrata.getString(2);
-                        //log.info(" SHOW CREATE TABLE " + tCreate);
-
-                        out += getTriplet(t, tName, tCreate);
-
-                    }
-                }
-
-            } catch (SQLException sqlEx) {
-                sqlEx.printStackTrace();
-                return sqlEx.toString();
-            }
-
-        }
-
-        out = getHeadMap() + out;
-        return out;
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-    private static String getTriplet(int t, String tName, String tCreate){
-        String resultTriplet = "";
-        String resTriplet = "";
-        String pkey = "";
-
-        Pattern pItem = Pattern.compile("  `(.+)` .+");
-        Pattern pK = Pattern.compile("PRIMARY KEY \\(`(.+)`\\)");
-
-
-        String[] lines = tCreate.split("\\r?\\n");
-        for (String str: lines) {
-            Matcher m = pItem.matcher(str);
-            if( m.find()){
-                resTriplet +="\n";
-                resTriplet +="	rr:predicateObjectMap [\n";
-                resTriplet +="		rr:predicate ex:"+m.group(1)+";\n";
-                resTriplet +="		rr:objectMap [ rr:column \""+m.group(1)+"\" ];\n";
-                resTriplet +="	];\n";
-            }
-
-            Matcher k = pK.matcher(str);
-            if( k.find()) {
-                pkey = k.group(1);
-            }
-
-        }
-
-        resultTriplet +="\n";
-        resultTriplet +="<#TriplesMap"+t+">\n";
-        resultTriplet +="	a rr:TriplesMap;\n";
-        resultTriplet +="	rr:logicalTable [ rr:tableName  \"\\\""+tName+"\\\"\" ];\n";
-        resultTriplet +="	rr:subjectMap [\n";
-        resultTriplet +="		rr:template \"http://data.example.com/"+tName+"/{\\\""+pkey+"\\\"}\";\n";
-        resultTriplet +="		rr:class <http://example.com/ontology/"+tName+">;\n";
-        resultTriplet +="		rr:graph <http://example.com/graph/"+tName+"> ;\n";
-        resultTriplet +="	];\n";
-        resultTriplet += resTriplet;
-        resultTriplet +="	.\n\n";
-
-        return resultTriplet;
-    }
-
-
-    private static String getHeadMap () {
-        String head = "@prefix rr: <http://www.w3.org/ns/r2rml#> .\n" +
-                "@prefix foaf: <http://xmlns.com/foaf/0.1/> .\n" +
-                "@prefix ex: <http://example.com/> .\n" +
-                "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n" +
-                "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n" +
-                "@base <http://example.com/base/> .\n";
-
-        return head;
-    }
 
 
 
