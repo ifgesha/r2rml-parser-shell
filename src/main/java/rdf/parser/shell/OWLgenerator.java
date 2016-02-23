@@ -7,32 +7,15 @@ import com.hp.hpl.jena.query.Dataset;
 import com.hp.hpl.jena.query.ReadWrite;
 import com.hp.hpl.jena.rdf.model.*;
 import com.hp.hpl.jena.tdb.TDBFactory;
-import com.hp.hpl.jena.util.FileManager;
 import gr.seab.r2rml.entities.MappingDocument;
-import org.apache.commons.lang.StringUtils;
 
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.*;
-import java.sql.Statement;
 import java.util.*;
 
 
-/**
- * Created by Женя on 01.02.2016.
- *
- *  There are five steps of our approach:
- *  (1) classification of tables,
- *  (2) mapping tables,
- *  (3) mapping columns,
- *  (4) mapping relationships,
-    (5) mapping constraints.
-    Next these steps will be illustrated by example.
- *
- */
+
 public class OWLgenerator {
 
     private Database db;
@@ -60,7 +43,14 @@ public class OWLgenerator {
                 result.next();
                 String dbName = result.getString(1);
 
+                // СТАРЫЙ Вариант NS
                 nsDB = ns + dbName + sep ;
+
+                // НОВЫЙ Вариант  NS
+                baseURI = baseURI + sep + dbName;
+                ns = baseURI + "#";
+                nsDB = ns ;
+
 
                 // Выбор information_schema там хранятся все данные по базам, таблицам и т.д.
                 db.query("USE `information_schema`");
@@ -75,16 +65,87 @@ public class OWLgenerator {
 
                     ArrayList<String> ExistsResurs = new ArrayList<String>();
 
+
+
+                    // 7.	Если Первичный ключ таблицы состоит из двух Внешних ключей к двум другим таблицам,
+                    // а сама таблица дополнительных атрибутов не имеет, то такая таблица не преобразовывается в класс,
+                    // а сами внешние ключи преобразуются в Объектное свойство и Объектное обратно свойство (inverseOf).
+                    // Каждое свойство характеризуется доменом и диапазоном в соответствии с правилами их формирования
+                    // для внешних ключей.
+
+                    String q = "select \n" +
+                            "(select count(COLUMN_NAME) from `COLUMNS`  WHERE TABLE_SCHEMA  = '"+dbName+"' and TABLE_NAME='"+tableName+"' ) as c_col,\n" +
+                            "(select count(COLUMN_NAME) from `KEY_COLUMN_USAGE`  WHERE TABLE_SCHEMA  = '"+dbName+"' and TABLE_NAME='"+tableName+"' AND CONSTRAINT_NAME='PRIMARY') as c_pk, " +
+                            "(select count(COLUMN_NAME) from `KEY_COLUMN_USAGE`  WHERE TABLE_SCHEMA  = '"+dbName+"' and TABLE_NAME='"+tableName+"' AND referenced_table_name IS NOT NULL ) as c_fk ";
+
+                    ResultSet resultColumns = db.query(q);
+                    resultColumns.next();
+                    if(resultColumns.getInt(1) == 2 && resultColumns.getInt(2) == 2 && resultColumns.getInt(3) == 2){
+
+
+                        q = "SELECT COLUMN_NAME, REFERENCED_Table_NAME,  REFERENCED_COLUMN_NAME " +
+                                "FROM  information_schema.KEY_COLUMN_USAGE " +
+                                "WHERE  TABLE_SCHEMA = '"+dbName+"' and referenced_table_name IS NOT NULL AND TABLE_NAME='"+tableName+"' ";
+                        resultColumns = db.query(q);
+
+                        // Ролучить данные по таблицам входящим во внешние ключи
+                        resultColumns.next();
+                        String ReferencedTableName1 = resultColumns.getString(2);
+                        String ReferencedColumnName1 = resultColumns.getString(3);
+
+                        resultColumns.next();
+                        String ReferencedTableName2 = resultColumns.getString(2);
+                        String ReferencedColumnName2 = resultColumns.getString(3);
+
+                        // Создадим класс таблици если его нет ********* для первой т.
+                        OntClass t_class;
+                        if(m.getOntClass(nsDB +ReferencedTableName1) != null){
+                            t_class= m.getOntClass(nsDB +ReferencedTableName1);
+                        }else{
+                            t_class = m.createClass(nsDB +ReferencedTableName1);
+                        }
+                        // Создать  Object Property mapping
+                        ObjectProperty op = m.createObjectProperty(nsTable +ReferencedColumnName1);
+                        op.addDomain(t_class);
+                        op.addRange(ResourceFactory.createResource(nsDB + ReferencedTableName2));
+                        ExistsResurs.add(ReferencedColumnName1);
+                        // Добавить ограничение ““If foreign key is a primary key or part of a primary key"
+                        t_class.addSuperClass(m.createCardinalityRestriction(null, op, 1));
+
+
+                        // Создадим класс таблици если его нет ********* для второй т.
+                        if(m.getOntClass(nsDB +ReferencedTableName2) != null){
+                            t_class= m.getOntClass(nsDB +ReferencedTableName2);
+                        }else{
+                            t_class = m.createClass(nsDB +ReferencedTableName2);
+                        }
+                        // Создать  Object Property mapping
+                        op = m.createObjectProperty(nsTable +ReferencedColumnName2);
+                        op.addDomain(t_class);
+                        op.addRange(ResourceFactory.createResource(nsDB + ReferencedTableName1));
+                        ExistsResurs.add(ReferencedColumnName2);
+                        // Добавить ограничение ““If foreign key is a primary key or part of a primary key"
+                        t_class.addSuperClass(m.createCardinalityRestriction(null, op, 1));
+
+
+
+                        continue; // Далее не идём
+                    }
+
+
+
+
+
                     // Создаём  класс из таблицы
                     OntClass t_class = m.createClass(nsDB +tableName);
 
                     // Primary key to Inverse Functional Property mapping -------------------------------------------------
-                    String q = "SELECT COLUMN_NAME "+
+                    q = "SELECT COLUMN_NAME "+
                             "FROM information_schema.KEY_COLUMN_USAGE "+
                             "WHERE TABLE_SCHEMA = '"+dbName+"' and TABLE_NAME='"+tableName+"' " +
                             "AND CONSTRAINT_NAME='PRIMARY' ";
 
-                    ResultSet resultColumns = db.query(q);
+                    resultColumns = db.query(q);
 
                     ArrayList<String> PKeyPart = new ArrayList<String>();
                     while(resultColumns.next()) {
