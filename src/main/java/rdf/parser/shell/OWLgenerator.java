@@ -157,7 +157,7 @@ public class OWLgenerator {
 
                         ifp.addDomain(t_class);
 
-                        ExistsResurs.add(PKeyPart.get(0));
+                        ExistsResurs.add(resultColumns.getString(1));
 
                         // Добавить ограничение (Фактически в терминах БД говорим NOT NULL )
                         t_class.addSuperClass(m.createMinCardinalityRestriction(null, ifp, 1));
