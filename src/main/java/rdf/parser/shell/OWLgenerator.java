@@ -114,15 +114,16 @@ public class OWLgenerator {
 
 
                         // Создадим класс таблици если его нет ********* для второй т.
-                        if(m.getOntClass(nsDB +ReferencedTableName2) != null){
-                            t_class= m.getOntClass(nsDB +ReferencedTableName2);
-                        }else{
-                            t_class = m.createClass(nsDB +ReferencedTableName2);
-                        }
+                        //if(m.getOntClass(nsDB +ReferencedTableName2) != null){
+                        //    t_class= m.getOntClass(nsDB +ReferencedTableName2);
+                        //}else{
+                            t_class = m.createClass(nsDB +ReferencedTableName2); // Дублирования можно не боятся
+                        //}
                         // Создать  Object Property mapping
                         op = m.createObjectProperty(nsTable +ReferencedColumnName2);
                         op.addDomain(t_class);
                         op.addRange(ResourceFactory.createResource(nsDB + ReferencedTableName1));
+                        op.addInverseOf(m.getOntProperty(nsTable +ReferencedColumnName1));
                         ExistsResurs.add(ReferencedColumnName2);
                         // Добавить ограничение ““If foreign key is a primary key or part of a primary key"
                         t_class.addSuperClass(m.createCardinalityRestriction(null, op, 1));
@@ -150,7 +151,19 @@ public class OWLgenerator {
                     ArrayList<String> PKeyPart = new ArrayList<String>();
                     while(resultColumns.next()) {
                         PKeyPart.add(resultColumns.getString(1));
+
+                        // Создать Inverse Functional Property из певичного ключа
+                        InverseFunctionalProperty ifp = m.createInverseFunctionalProperty(nsTable + resultColumns.getString(1));
+
+                        ifp.addDomain(t_class);
+
+                        ExistsResurs.add(PKeyPart.get(0));
+
+                        // Добавить ограничение (Фактически в терминах БД говорим NOT NULL )
+                        t_class.addSuperClass(m.createMinCardinalityRestriction(null, ifp, 1));
                     }
+
+                    /*
 
                     // Создаём Inverse Functional Property Только если в колонке уникальные значения
                     // Если PrimaryKey  составной, создавать  Inverse Functional Property НЕ нужно
@@ -164,6 +177,7 @@ public class OWLgenerator {
                         // Добавить ограничение (Фактически в терминах БД говорим NOT NULL )
                         t_class.addSuperClass(m.createMinCardinalityRestriction(null, ifp, 1));
                     }
+                    */
 
 
                     // Внешние ключи --------------------------------------------------------------------------------------
@@ -182,16 +196,22 @@ public class OWLgenerator {
                         String ReferencedColumnName = resultColumns.getString(3);
 
                         // Создать  Object Property mapping
-                        ObjectProperty op = m.createObjectProperty(nsTable +FKeyColumnName);
+                        //ObjectProperty op = m.createObjectProperty(nsTable +FKeyColumnName);
+                        ObjectProperty op = m.createObjectProperty(nsDB +ReferencedTableName + sep + tableName );
                         op.addDomain(t_class);
                         op.addRange(ResourceFactory.createResource(nsDB + ReferencedTableName));
 
-                        ExistsResurs.add(FKeyColumnName);
+                        //ExistsResurs.add(FKeyColumnName);
 
                         // Добавить ограничение ““If foreign key is a primary key or part of a primary key"
-                        if(PKeyPart.contains(FKeyColumnName)){
+                        // if(PKeyPart.contains(FKeyColumnName)){
+                        if(PKeyPart.contains(nsDB +ReferencedTableName + sep + tableName )){
                             t_class.addSuperClass(m.createCardinalityRestriction(null, op, 1));
                         }
+
+                        // Сделать тукущий класс подкласом
+                        t_class.addSuperClass(m.createClass(nsDB +ReferencedTableName));
+
                     }
 
 
