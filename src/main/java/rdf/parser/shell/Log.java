@@ -9,12 +9,12 @@ public class Log {
 
     public void info(String s) {
         System.out.println("info: "+s);
-        textarea.setText(textarea.getText() + "\ninfo: "+s);
+        if(textarea != null )  textarea.setText(textarea.getText() + "\ninfo: "+s);
     }
 
     public void error(String s) {
         System.out.println("error: "+s);
-        textarea.setText(textarea.getText() + "\nerror: "+s);
+        if(textarea != null )  textarea.setText(textarea.getText() + "\nerror: "+s);
     }
 
 
