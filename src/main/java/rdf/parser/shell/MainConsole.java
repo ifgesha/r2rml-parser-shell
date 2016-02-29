@@ -38,8 +38,50 @@ public class MainConsole {
 
 
         if (args.length > 0) {
-            if(args[0] == "createOWL"){  }
-            if(args[0] == "createMapFile"){  }
+
+            String res = "";
+            String file = "";
+
+            Database db = new Database();
+            db.setProperties(properties);
+            db.setLog(log);
+
+
+            if(args[0].equals("createOWL")){
+                file =  ParserPath + "result/Ontology.rdf";
+
+                OWLgenerator owlGen = new OWLgenerator();
+                owlGen.setDb(db);
+                owlGen.setLog(log);
+                res =  owlGen.createOWL(args[1], false);
+            }
+
+
+            if(args[0].equals("createMapFile")){
+                //file = ParserPath + properties.getProperty("mapping.file");
+                file =  ParserPath + "result/MappingFile";
+                MapGenerator mg = new MapGenerator();
+                mg.setDb(db);
+                mg.setLog(log);
+                res =  mg.makeR2RML(args[1]);
+            }
+
+
+            if(res != "") {
+                // Записать в файл
+                log.info("Write to file " + file);
+                try {
+                    PrintWriter writer = new PrintWriter(file, "UTF-8");
+                    writer.println(res);
+                    writer.close();
+                } catch (IOException ex) {
+                    log.error("Error write map file (" + file + ")." + ex.toString());
+                }
+            }
+
+
+
+
         }else{
             System.err.println("Need Argument");
         }
@@ -50,68 +92,10 @@ public class MainConsole {
     }
 
 
-    public static void CreateMapFile(){
-
-        Database db = new Database();
-        db.setProperties(properties);
-        db.setLog(log);
-
-        MapGenerator mg = new MapGenerator();
-        mg.setDb(db);
-        mg.setLog(log);
-
-        String tripletMap =  mg.makeR2RML(properties.getProperty("mapping.file.type"));
-
-
-        if(tripletMap != null) {
-
-            // Записать в файл
-            String file =  ParserPath + properties.getProperty("mapping.file");
-            log.info("Write triplet to file " + file);
-
-            try {
-                PrintWriter writer = new PrintWriter(file, "UTF-8");
-                writer.println(tripletMap);
-                writer.close();
-            } catch (IOException ex) {
-                log.error("Error write map file (" + file + ")." + ex.toString());
-            }
-        }
-    }
-
-
-    public static void CreateOWL() {
-        System.out.println("CreateOWL");
-
-        Database db = new Database();
-        db.setProperties(properties);
-        db.setLog(log);
-
-        OWLgenerator owlGen = new OWLgenerator();
-        owlGen.setDb(db);
-        owlGen.setLog(log);
-        //String owl =  owlGen.createOWL(properties.getProperty("mapping.file.type"));
-        String owl =  owlGen.createOWL("RDF/XML-ABBREV", false);
-
-        // Записать в файл
-        String file =  ParserPath + "Ontology.rdf";
-        log.info("Write owl to map file " + file);
-        try {
-            PrintWriter writer = new PrintWriter(file, "UTF-8");
-            writer.println(owl);
-            writer.close();
-        } catch (IOException ex) {
-            log.error("Error write map file (" + file + ")." + ex.toString());
-        }
-    }
-
-
-
 
 
     // Вычитать properties для парсера из файла
     public static void LoadProperty(String propertiesFile) {
-       // String propertiesFile = path + "r2rml.properties";
         try {
             if (StringUtils.isNotEmpty(propertiesFile)) {
                 properties.load(new FileInputStream(propertiesFile));
@@ -124,15 +108,7 @@ public class MainConsole {
             log.error("Error reading properties file (" + propertiesFile + ").");
             //System.exit(1);
         }
-        //properties.list(System.out);
-        //updateItems(form);
     }
-
-
-
-
-
-
 
 
 
