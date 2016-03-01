@@ -80,6 +80,14 @@ public class MainConsole {
             }
 
 
+            if(args[0].equals("RunParser")){
+                try {
+                    MainParser.runParcer(null);
+                }catch (RuntimeException e){
+                    log.error(e.toString());
+                }
+            }
+
 
 
         }else{
@@ -90,7 +98,6 @@ public class MainConsole {
 
 
     }
-
 
 
 
