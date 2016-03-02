@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import static rdf.parser.shell.MainConsole.fixProperty;
 
 
 public class MainParser {
@@ -57,6 +58,9 @@ public class MainParser {
 			if (StringUtils.isNotEmpty(propertiesFile)) {
 				properties.load(new FileInputStream(propertiesFile));
 				log.info("Loaded properties from " + propertiesFile);
+				if (args.length > 0 && args[0].equals("fixProperty")) {
+					properties = fixProperty(properties);
+				}
 			}
 		} catch (FileNotFoundException e) {
 			//e.printStackTrace();

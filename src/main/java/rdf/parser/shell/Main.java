@@ -146,7 +146,7 @@ public class Main {
         if(properties.getProperty("jena.cleanTdbOnStartup").equals("true")){
             form.jenaCleanTdbOnStartup.setSelected(true);
         }
-        form.jenaTdbDirectory.setText( properties.getProperty("db.jena.tdb.directory"));
+        form.jenaTdbDirectory.setText( properties.getProperty("jena.tdb.directory"));
 
         form.jenaDestinationFileName.setText( properties.getProperty("jena.destinationFileName"));
         form.jenaDestinationFileSyntax.setSelectedItem(properties.getProperty("jena.destinationFileSyntax"));
@@ -175,7 +175,7 @@ public class Main {
             properties.setProperty("db.password",           form.dbPassword.getText());
             properties.setProperty("jena.storeOutputModelUsingTdb", Boolean.toString(form.jenaStoreOutputModelUsingTdb.isSelected()));
             properties.setProperty("jena.cleanTdbOnStartup",        Boolean.toString(form.jenaCleanTdbOnStartup.isSelected()));
-            properties.setProperty("db.jena.tdb.directory",         form.jenaTdbDirectory.getText());
+            properties.setProperty("jena.tdb.directory",         form.jenaTdbDirectory.getText());
             properties.setProperty("jena.destinationFileName",      form.jenaDestinationFileName.getText());
             properties.setProperty("jena.destinationFileSyntax",    form.jenaDestinationFileSyntax.getSelectedItem().toString());
 

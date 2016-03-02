@@ -82,7 +82,8 @@ public class MainConsole {
 
             if(args[0].equals("RunParser")){
                 try {
-                    MainParser.runParcer(null);
+                    String prop[] = {"fixProperty"};
+                    MainParser.runParcer(prop);
                 }catch (RuntimeException e){
                     log.error(e.toString());
                 }
@@ -107,6 +108,7 @@ public class MainConsole {
             if (StringUtils.isNotEmpty(propertiesFile)) {
                 properties.load(new FileInputStream(propertiesFile));
                 log.info("Loaded properties from " + propertiesFile);
+                properties = fixProperty(properties);
             }
         } catch (FileNotFoundException e) {
             log.error("Properties file not found (" + propertiesFile + ").");
@@ -118,6 +120,30 @@ public class MainConsole {
     }
 
 
+    // Установить критичные настройки
+    public static Properties fixProperty(Properties properties) {
+
+            properties.setProperty("mapping.file",          "result/MappingFile");
+            //properties.setProperty("mapping.file.type",     form.mappingFileType.getSelectedItem().toString());
+            //properties.setProperty("default.namespace",     form.defaultNamespace.getText());
+            properties.setProperty("default.log",           "result/status.rdf");
+            //properties.setProperty("default.verbose",       Boolean.toString(form.defaultVerbose.isSelected()));
+            //properties.setProperty("default.incremental",   Boolean.toString(form.defaultIncremental.isSelected()));
+            properties.setProperty("input.model",           "dspace/edm-empty.rdf");
+            //properties.setProperty("input.model.type",      form.inputModelType.getSelectedItem().toString());
+            //properties.setProperty("db.driver",             form.dbDriver.getText());
+            //properties.setProperty("db.url",                form.dbUrl.getText());
+            //properties.setProperty("db.login",              form.dbLogin.getText());
+            //properties.setProperty("db.password",           form.dbPassword.getText());
+            //properties.setProperty("jena.storeOutputModelUsingTdb", Boolean.toString(form.jenaStoreOutputModelUsingTdb.isSelected()));
+            //properties.setProperty("jena.cleanTdbOnStartup",        Boolean.toString(form.jenaCleanTdbOnStartup.isSelected()));
+            properties.setProperty("jena.tdb.directory",         "result/tdb");
+            properties.setProperty("jena.destinationFileName",      "result/parser_result.rdf");
+            //properties.setProperty("jena.destinationFileSyntax",    form.jenaDestinationFileSyntax.getSelectedItem().toString());
+
+        return properties;
+
+    }
 
 
 
