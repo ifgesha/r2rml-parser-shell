@@ -53,7 +53,9 @@ public class MainConsole {
                 OWLgenerator owlGen = new OWLgenerator();
                 owlGen.setDb(db);
                 owlGen.setLog(log);
-                res =  owlGen.createOWL(args[1], false);
+                owlGen.setProperties(properties);
+                //res =  owlGen.createOWL(args[1], false);
+                res =  owlGen.createOWL(false);
             }
 
 
@@ -63,7 +65,8 @@ public class MainConsole {
                 MapGenerator mg = new MapGenerator();
                 mg.setDb(db);
                 mg.setLog(log);
-                res =  mg.makeR2RML(args[1]);
+                mg.setProperties(properties);
+                res =  mg.makeR2RML();
             }
 
 

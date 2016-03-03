@@ -20,18 +20,23 @@ public class OWLgenerator {
 
     private Database db;
     private static Log log;
+    private static Properties properties;
 
 
     // Create an empty ontology model
     OntModel m = ModelFactory.createOntologyModel();
-    String baseURI = "http://www.damp1r.ru";
-    String sep = "/";
-    String ns = baseURI + "#";
-    String nsDB = "";
-    String nsTable = "";
 
 
-    public String createOWL(String outFormat, boolean writeTDB){
+
+    public String createOWL(boolean writeTDB){
+
+
+        String baseURI = properties.getProperty("gen.ns.owl");
+        String sep = "/";
+        String ns = baseURI + "#";
+        String nsDB = "";
+        String nsTable = "";
+
 
 
 
@@ -197,7 +202,7 @@ public class OWLgenerator {
 
                         // Создать  Object Property mapping
                         //ObjectProperty op = m.createObjectProperty(nsTable +FKeyColumnName);
-                        ObjectProperty op = m.createObjectProperty(nsDB +ReferencedTableName + sep + tableName );
+                        ObjectProperty op = m.createObjectProperty(nsDB + tableName + sep + ReferencedTableName );
                         op.addDomain(t_class);
                         op.addRange(ResourceFactory.createResource(nsDB + ReferencedTableName));
 
@@ -269,7 +274,7 @@ public class OWLgenerator {
         if(writeTDB){ WriteTDB ();}
 
         StringWriter out = new StringWriter();
-        m.write (out, outFormat, ns);
+        m.write (out, properties.getProperty("gen.file.type"), ns);
 
         return out.toString();
 
@@ -426,10 +431,7 @@ public class OWLgenerator {
     }
 
 
-
-
-
-
-
-
+    public void setProperties(Properties properties) {
+        this.properties = properties;
+    }
 }

@@ -314,7 +314,7 @@ public class UtilImpl implements Util {
 	/**
 	 * returns an XSD datatype according to the type of an SQL field
 	 */
-	public BaseDatatype findDataTypeFromSql(String sqlDataType) {
+	public BaseDatatype findDataTypeFromSql_ORIG(String sqlDataType) {
 		sqlDataType = sqlDataType.toLowerCase();
 		if (sqlDataType.equals("character")
 				|| sqlDataType.equals("text") 
@@ -372,6 +372,77 @@ public class UtilImpl implements Util {
     	}
 		//return null;
 	}
+
+	// Проверено на mySQL
+	public BaseDatatype findDataTypeFromSql(String sqlDataType) {
+		sqlDataType = sqlDataType.toLowerCase();
+		if (    sqlDataType.equals("char")
+				|| sqlDataType.equals("varchar")
+				|| sqlDataType.equals("binary")
+				|| sqlDataType.equals("varbinary")
+				|| sqlDataType.equals("tinyblob ")
+				|| sqlDataType.equals("tinytext")
+				|| sqlDataType.equals("blob ")
+				|| sqlDataType.equals("text")
+				|| sqlDataType.equals("mediumblob")
+				|| sqlDataType.equals("mediumtext")
+				|| sqlDataType.equals("longtext")
+				|| sqlDataType.equals("longblob")
+				|| sqlDataType.equals("enum")
+				|| sqlDataType.equals("set")
+				) {
+			return XSDDatatype.XSDstring;
+
+		} else if (sqlDataType.equals("bit")
+				|| sqlDataType.equals("boolean")) {
+			return XSDDatatype.XSDboolean;
+
+		} else if (sqlDataType.equals("tinyint")) {
+			return XSDDatatype.XSDbyte;
+
+		} else if (sqlDataType.equals("smallint")) {
+			return XSDDatatype.XSDshort;
+
+		} else if (sqlDataType.equals("mediumint")
+				|| sqlDataType.equals("int")) {
+			return XSDDatatype.XSDint;
+
+		} else if (sqlDataType.equals("bigint")) {
+			return XSDDatatype.XSDlong;
+
+		} else if (sqlDataType.equals("dec")
+				|| sqlDataType.equals("decimal")) {
+			return XSDDatatype.XSDdecimal;
+
+		} else if (sqlDataType.equals("double")
+				|| sqlDataType.equals("real")) {
+			return XSDDatatype.XSDdouble;
+
+		} else if (sqlDataType.equals("float")) {
+			return XSDDatatype.XSDfloat;
+
+		} else if (sqlDataType.equals("date")) {
+			return XSDDatatype.XSDdate;
+
+		} else if (sqlDataType.equals("datetime")
+				|| sqlDataType.equals("timestamp")) {
+			return XSDDatatype.XSDdateTime;
+
+		} else if (sqlDataType.equals("time")) {
+			return XSDDatatype.XSDtime;
+
+		} else if (sqlDataType.equals("year")) {
+			return XSDDatatype.XSDgYear;
+
+		} else {
+			String err = "Found unknown mySQL sqlDataType " + sqlDataType;
+			log.error(err);
+			throw new RuntimeException(err);
+		}
+	}
+
+
+
 	
 	public String md5(ResultSet rs) {
 		String digest = null;

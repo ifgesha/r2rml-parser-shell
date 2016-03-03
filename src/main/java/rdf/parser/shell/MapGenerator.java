@@ -7,6 +7,7 @@ import java.io.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.regex.*;
 
 
@@ -14,10 +15,9 @@ public class MapGenerator {
 
     private Database db;
     private static Log log;
+    private static Properties properties;
 
 
-    private final String ns = "http://example.com/";
-    private final String exNs = "http://example.com/";
 
     private final String rrNs = "http://www.w3.org/ns/r2rml#";
     private final String foafNs = "http://xmlns.com/foaf/0.1/";
@@ -30,7 +30,12 @@ public class MapGenerator {
 
 
 
-    public String makeR2RML(String outFormat){
+    public String makeR2RML(){
+
+
+        String ns = properties.getProperty("gen.ns.map");
+        String exNs = properties.getProperty("gen.ns.map.ex");
+
 
 
         /*
@@ -123,17 +128,20 @@ public class MapGenerator {
                     while(resultColumns.next()) {
                         String column = resultColumns.getString(1);
                         if(pk != "" ){ pk = pk+"/"; } // Разделим несколько полей в составном ключе
-                        pk += "{"+column+"}";
+                        pk += column.toLowerCase()+"={"+column.toUpperCase()+"}";
                     }
+
+                    // Нужно делать шаблон в разных регистрах иначе если в любом месте строки встретится то что есть в {} будет не корректный парсинг
+                    String rrTemplate = ns+tableName;
+                    rrTemplate = rrTemplate.toLowerCase()+"/"+pk;
+
 
                     // Добавим узел SubjectMap в TriplesMap
                     res.addProperty(propSubjectMap,
                             m.createResource()
-                                    //.addProperty(propGraph, "<"+ns+"graph/"+tableName+">")
-                                    //.addProperty(propClass, "<"+ns+"ontology/"+tableName+">")
                                     .addProperty(propGraph, m.createResource( ns+"graph/"+tableName ))
-                                    .addProperty(propClass, m.createResource( ns+"ontology/"+tableName ))
-                                    .addProperty(propTemplate, ns+tableName+"/"+pk)
+                                    .addProperty(propClass, m.createResource( ns+"/"+tableName ))
+                                    .addProperty(propTemplate, rrTemplate)
                     );
 
 
@@ -154,7 +162,7 @@ public class MapGenerator {
                         // Добавим узел PredicateObjectMap в TriplesMap
                         res.addProperty(propPredicateObjectMap,
                                 m.createResource()
-                                        .addProperty(propPredicate,  m.createResource(exNs + FKeyColumnName))
+                                        .addProperty(propPredicate, m.createResource(exNs + "/" + tableName +"#ref-" + FKeyColumnName))
                                         .addProperty(propObjectMap,
                                                 m.createResource()
                                                         .addProperty(propParentTriplesMap,  m.createResource("#TriplesMap_"+ReferencedTableName))
@@ -184,7 +192,7 @@ public class MapGenerator {
                         // Добавим узел PredicateObjectMap в TriplesMap
                         res.addProperty(propPredicateObjectMap,
                                 m.createResource()
-                                        .addProperty(propPredicate,  m.createResource(exNs + columnName))
+                                        .addProperty(propPredicate, m.createResource(exNs + "/" + tableName + "#"+columnName))
                                         .addProperty(propObjectMap,
                                                 m.createResource()
                                                         .addProperty(propColumn, columnName)
@@ -208,7 +216,7 @@ public class MapGenerator {
 
 
         StringWriter out = new StringWriter();
-        m.write (out, outFormat, ns);
+        m.write (out, properties.getProperty("gen.file.type"), ns);
 
         return out.toString();
 
@@ -227,4 +235,9 @@ public class MapGenerator {
     public void setLog(Log log) {
         this.log = log;
     }
+
+    public void setProperties(Properties properties) {
+        this.properties = properties;
+    }
+
 }

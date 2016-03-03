@@ -42,6 +42,10 @@ public class MainForm extends JFrame{
     public JScrollPane LogPanel;
     private JButton parseDBButton;
     private JButton createOWLButton;
+    public JComboBox generatorFileType;
+    public JTextField nsOWL;
+    public JTextField nsMap;
+    public JTextField nsMapEX;
 
 
     public MainForm(){

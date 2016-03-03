@@ -49,8 +49,9 @@ public class Main {
         MapGenerator mg = new MapGenerator();
         mg.setDb(db);
         mg.setLog(log);
+        mg.setProperties(properties);
 
-        String tripletMap =  mg.makeR2RML(properties.getProperty("mapping.file.type"));
+        String tripletMap =  mg.makeR2RML();
 
 
         if(tripletMap != null) {
@@ -80,8 +81,9 @@ public class Main {
         OWLgenerator owlGen = new OWLgenerator();
         owlGen.setDb(db);
         owlGen.setLog(log);
-        //String owl =  owlGen.createOWL(properties.getProperty("mapping.file.type"));
-        String owl =  owlGen.createOWL("RDF/XML-ABBREV", false);
+        owlGen.setProperties(properties);
+
+        String owl =  owlGen.createOWL(false);
 
         // Записать в файл
         String file =  ParserPath + "Ontology.rdf";
@@ -120,6 +122,12 @@ public class Main {
 
     // Обновить значения в полях формы
     public static void updateItems (MainForm form){
+
+
+        form.nsOWL.setText( properties.getProperty("gen.ns.owl"));
+        form.nsMap.setText( properties.getProperty("gen.ns.map"));
+        form.nsMapEX.setText( properties.getProperty("gen.ns.map.ex"));
+        form.generatorFileType.setSelectedItem(properties.getProperty("gen.file.type"));
 
         form.mappingFile.setText( properties.getProperty("mapping.file"));
         form.mappingFileType.setSelectedItem(properties.getProperty("mapping.file.type"));
@@ -160,6 +168,11 @@ public class Main {
     public static void saveProperty(String propertiesFile) {
         //String propertiesFile = path + "r2rml.properties";
         try {
+
+            properties.setProperty("gen.file.type",          form.generatorFileType.getSelectedItem().toString());
+            properties.setProperty("gen.ns.owl",             form.nsOWL.getText());
+            properties.setProperty("gen.ns.map",             form.nsMap.getText());
+            properties.setProperty("gen.ns.map.ex",          form.nsMapEX.getText());
 
             properties.setProperty("mapping.file",          form.mappingFile.getText());
             properties.setProperty("mapping.file.type",     form.mappingFileType.getSelectedItem().toString());

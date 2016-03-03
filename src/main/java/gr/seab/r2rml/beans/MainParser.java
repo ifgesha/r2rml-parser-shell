@@ -58,7 +58,7 @@ public class MainParser {
 			if (StringUtils.isNotEmpty(propertiesFile)) {
 				properties.load(new FileInputStream(propertiesFile));
 				log.info("Loaded properties from " + propertiesFile);
-				if (args.length > 0 && args[0].equals("fixProperty")) {
+				if (args != null && args.length > 0 && args[0].equals("fixProperty")) {
 					properties = fixProperty(properties);
 				}
 			}
