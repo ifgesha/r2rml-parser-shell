@@ -255,28 +255,35 @@ public class OWLgenerator {
         }
 
       // log.info("\n\n----------- OWL -----------\n\n"+ont);
-
+        StringWriter out = new StringWriter();
 
 
         // Префиксы
         m.setNsPrefix("", ns);
 
         // Заголовки онтологии
-        m.createOntology( baseURI );
-        Ontology ont = m.getOntology( baseURI );
-        ont.addComment("Auto generate оntology from RDB Shema","en");
+        m.createOntology(baseURI);
+        Ontology ont = m.getOntology(baseURI);
+        ont.addComment("Auto generate оntology from RDB Shema", "en");
         ont.addVersionInfo("v 1.00");
         //ont.addImport( m.createResource( "http://example.com/import1" ) );
         //ont.addImport( m.createResource( "http://example.com/import2" ) );
 
         //-----------------------------
 
-        if(writeTDB){ WriteTDB ();}
+        if (writeTDB) { WriteTDB();        }
 
-        StringWriter out = new StringWriter();
-        m.write (out, properties.getProperty("gen.file.type"), ns);
+        try {
+            m.write(out, properties.getProperty("gen.file.type"), ns);
+            log.info("Result size =  " + out.toString().length());
+
+        }catch (Exception e){
+            log.error("Error " + e.toString());
+        }
+
 
         return out.toString();
+
 
     }
 

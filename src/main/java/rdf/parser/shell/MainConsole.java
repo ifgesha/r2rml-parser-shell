@@ -80,6 +80,10 @@ public class MainConsole {
                 } catch (IOException ex) {
                     log.error("Error write map file (" + file + ")." + ex.toString());
                 }
+            }else{
+
+                // Записать в файл
+                log.info("Result is NULL !!!");
             }
 
 

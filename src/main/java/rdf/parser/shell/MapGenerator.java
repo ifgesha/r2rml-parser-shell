@@ -216,7 +216,17 @@ public class MapGenerator {
 
 
         StringWriter out = new StringWriter();
-        m.write (out, properties.getProperty("gen.file.type"), ns);
+
+
+        try {
+            m.write(out, properties.getProperty("gen.file.type"), ns);
+            log.info("Result size =  " + out.toString().length());
+
+        }catch (Exception e){
+            log.error("Error " + e.toString());
+        }
+
+
 
         return out.toString();
 
