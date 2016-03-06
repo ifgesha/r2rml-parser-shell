@@ -92,6 +92,21 @@ public class MainConsole {
                 }
             }
 
+            if(args[0].equals("FormatConverter")){
+                try {
+                    //String prop[] = {"fixProperty"};
+                    JenaFormatConvertor conv = new JenaFormatConvertor();
+                    conv.setLog(log);
+                    conv.run(ParserPath, args[1], args[2], args[3]);
+                }catch (RuntimeException e){
+                    log.error(e.toString());
+                }
+            }
+
+
+
+
+
 
 
         }else{
