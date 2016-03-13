@@ -83,15 +83,18 @@ public class StoreTDB {
                 String ns = essaClasse.getNameSpace();
                 String vClasse = essaClasse.getLocalName().toString();
 
+                //System.out.println("Classe: " + vClasse);
+                System.out.println("{ \"source\":\"" + vClasse + "\", \"target\": \"" + vClasse + "\",\"value\": 100},");
 
-                System.out.println("Classe: " + vClasse);
 
                 // Перебор подклассов
                 OntClass cla = m.getOntClass(ns + vClasse);
                 if (essaClasse.hasSubClass() ) {
                     for (Iterator i = cla.listSubClasses(); i.hasNext(); ) {
                         OntClass c = (OntClass) i.next();
-                        System.out.print("         sub: " + c.getLocalName() + " " + "\n");
+                        //System.out.print("         sub: " + c.getLocalName() + " " + "\n");
+                        System.out.println("{ \"source\":\"" + c.getLocalName() + "\", \"target\": \"" + vClasse + "\",\"value\": 50},");
+
                     }
                 }
 
