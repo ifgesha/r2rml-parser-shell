@@ -46,6 +46,7 @@ public class MainForm extends JFrame{
     public JTextField nsOWL;
     public JTextField nsMap;
     public JTextField nsMapEX;
+    public JButton readTDB;
 
 
     public MainForm(){
@@ -107,6 +108,14 @@ public class MainForm extends JFrame{
             }
         });
 
+        readTDB.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                System.out.println("click readTDB");
+                Main.readTDB();
+            }
+        });
 
     }
 

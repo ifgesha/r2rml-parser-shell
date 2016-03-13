@@ -3,6 +3,8 @@ package rdf.parser.shell;
 import org.apache.commons.lang.StringUtils;
 import gr.seab.r2rml.beans.MainParser;
 import java.io.*;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 
 public class Main {
@@ -83,7 +85,7 @@ public class Main {
         owlGen.setLog(log);
         owlGen.setProperties(properties);
 
-        String owl =  owlGen.createOWL(false);
+        String owl =  owlGen.createOWL(true);
 
         // Записать в файл
         String file =  ParserPath + "Ontology.rdf";
@@ -98,6 +100,21 @@ public class Main {
     }
 
 
+    public static void readTDB() {
+        System.out.println("CreateOWL");
+        StoreTDB  tdb = new StoreTDB();
+        tdb.setProperties(properties);
+        tdb.setLog(log);
+
+
+        // Получить список именованых моделей
+        List<String> modelName = tdb.getNamedModelList();
+        for(Iterator<String> i = modelName.iterator(); i.hasNext(); ) {
+            String mName = i.next();
+            tdb.getOwlClasses(mName);
+        }
+        //tdb.getOwlClasses(""); // Список классов модели DefaultModel
+    }
 
 
 
