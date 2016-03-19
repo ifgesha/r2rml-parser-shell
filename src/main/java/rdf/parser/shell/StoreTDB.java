@@ -3,6 +3,7 @@ package rdf.parser.shell;
 import com.hp.hpl.jena.ontology.OntClass;
 import com.hp.hpl.jena.ontology.OntModel;
 import com.hp.hpl.jena.ontology.OntModelSpec;
+import com.hp.hpl.jena.ontology.OntProperty;
 import com.hp.hpl.jena.query.Dataset;
 import com.hp.hpl.jena.query.ReadWrite;
 import com.hp.hpl.jena.rdf.model.*;
@@ -46,6 +47,12 @@ public class StoreTDB {
     public void getOwlClasses (String NamedModel) {
         Model model;
 
+        String outClasses = "";
+        String outSubClassLink = "";
+        String outProperty = "";
+        String outPropertyLink = "";
+
+
         // Получить модель из TDB
         Dataset dataset = TDBFactory.createDataset(jenaTdbDirectory);
         dataset.begin(ReadWrite.READ);
@@ -71,6 +78,8 @@ public class StoreTDB {
         //writeNamedModelTDB(m, "model4", false);
 
 
+
+
         // Итератор классов модели
         ExtendedIterator classes = m.listClasses();
 
@@ -81,10 +90,13 @@ public class StoreTDB {
             if(essaClasse.getLocalName() != null){
 
                 String ns = essaClasse.getNameSpace();
-                String vClasse = essaClasse.getLocalName().toString();
+                String vClasse = essaClasse.getLocalName();
 
-                //System.out.println("Classe: " + vClasse);
-                System.out.println("{ \"source\":\"" + vClasse + "\", \"target\": \"" + vClasse + "\",\"value\": 100},");
+                System.out.println("Classe: " + vClasse);
+                //System.out.println("{ \"source\":\"" + vClasse + "\", \"target\": \"" + vClasse + "\",\"n_type\": \"class\"},");
+
+
+                outClasses += "'"+vClasse+"':{'id': '"+vClasse+"', 'name': '"+vClasse+"', 'n_type': 'class' },\n";
 
 
                 // Перебор подклассов
@@ -92,14 +104,49 @@ public class StoreTDB {
                 if (essaClasse.hasSubClass() ) {
                     for (Iterator i = cla.listSubClasses(); i.hasNext(); ) {
                         OntClass c = (OntClass) i.next();
-                        //System.out.print("         sub: " + c.getLocalName() + " " + "\n");
-                        System.out.println("{ \"source\":\"" + c.getLocalName() + "\", \"target\": \"" + vClasse + "\",\"value\": 50},");
+                        System.out.print("         sub: " + c.getLocalName() + " " + "\n");
+                        //System.out.println("{ \"source\":\"" + c.getLocalName() + "\", \"target\": \"" + vClasse + "\",\"n_type\": \"class\"},");
 
+                        //outClasses += "{'id': '"+vClasse+"', 'name': '"+vClasse+"', 'n_type': 'class' },\n";
+                        outSubClassLink += "{ 'source':'" + c.getLocalName() + "', 'target': '" + vClasse + "'},\n";
                     }
                 }
 
             }
         }
+
+        // Итератор классов модели
+       // ExtendedIterator prop = m.listObjectProperties();
+        ExtendedIterator prop = m.listDatatypeProperties();
+        while (prop.hasNext()) {
+            OntProperty p = (OntProperty) prop.next();
+
+            if(p.getLocalName() != null) {
+
+                String ns = p.getNameSpace();
+                String pClass = p.getDomain().getLocalName();
+                String pName =  pClass + "_"+ p.getLocalName();
+
+                System.out.println("Class: " + pClass + " Prop: " + pName);
+
+                outProperty += "'"+pName+"':{'id': '"+pName+"', 'name': '"+pName+"', 'n_type': 'prop' },\n";
+                outPropertyLink += "{ 'source':'" + pName + "', 'target': '" + pClass + "'},\n";
+            }
+
+
+        }
+
+        System.out.println( "{  \"nodes\": {");
+
+        System.out.println( outClasses);
+        System.out.println( outProperty);
+
+        System.out.println( "},\"links\": [");
+
+        System.out.println( outSubClassLink);
+        System.out.println( outPropertyLink);
+
+        System.out.println("]}");
 
 
     }

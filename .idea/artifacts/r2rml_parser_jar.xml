@@ -1,5 +1,5 @@
 <component name="ArtifactManager">
-  <artifact type="jar" build-on-make="true" name="r2rml-parser:jar">
+  <artifact type="jar" name="r2rml-parser:jar">
     <output-path>$PROJECT_DIR$/classes/artifacts/r2rml_parser_jar</output-path>
     <root id="archive" name="r2rml-parser.jar">
       <element id="module-output" name="r2rml-parser" />
