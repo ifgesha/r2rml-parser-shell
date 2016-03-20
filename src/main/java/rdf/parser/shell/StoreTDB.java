@@ -51,6 +51,8 @@ public class StoreTDB {
         String outSubClassLink = "";
         String outProperty = "";
         String outPropertyLink = "";
+        Integer cid = 0;
+        Integer pid = 0;
 
 
         // Получить модель из TDB
@@ -64,6 +66,7 @@ public class StoreTDB {
             }else{
                 System.out.println("\nClasses of TDB Model : DefaultModel" );
                 model = dataset.getDefaultModel();          // Получить модель по умолчанию
+                NamedModel = "def";
             }
 
         dataset.end();
@@ -79,7 +82,6 @@ public class StoreTDB {
 
 
 
-
         // Итератор классов модели
         ExtendedIterator classes = m.listClasses();
 
@@ -89,15 +91,11 @@ public class StoreTDB {
 
             if(essaClasse.getLocalName() != null){
 
+                cid ++;
                 String ns = essaClasse.getNameSpace();
                 String vClasse = essaClasse.getLocalName();
-
                 System.out.println("Classe: " + vClasse);
-                //System.out.println("{ \"source\":\"" + vClasse + "\", \"target\": \"" + vClasse + "\",\"n_type\": \"class\"},");
-
-
-                outClasses += "'"+vClasse+"':{'id': '"+vClasse+"', 'name': '"+vClasse+"', 'n_type': 'class' },\n";
-
+                outClasses += "'"+vClasse+"':{'id': '"+NamedModel+"_c"+cid+"', 'name': '"+vClasse+"', 'ont': '"+NamedModel+"', 'n_type': 'class' },\n";
 
                 // Перебор подклассов
                 OntClass cla = m.getOntClass(ns + vClasse);
@@ -105,9 +103,6 @@ public class StoreTDB {
                     for (Iterator i = cla.listSubClasses(); i.hasNext(); ) {
                         OntClass c = (OntClass) i.next();
                         System.out.print("         sub: " + c.getLocalName() + " " + "\n");
-                        //System.out.println("{ \"source\":\"" + c.getLocalName() + "\", \"target\": \"" + vClasse + "\",\"n_type\": \"class\"},");
-
-                        //outClasses += "{'id': '"+vClasse+"', 'name': '"+vClasse+"', 'n_type': 'class' },\n";
                         outSubClassLink += "{ 'source':'" + c.getLocalName() + "', 'target': '" + vClasse + "'},\n";
                     }
                 }
@@ -115,26 +110,28 @@ public class StoreTDB {
             }
         }
 
-        // Итератор классов модели
-       // ExtendedIterator prop = m.listObjectProperties();
-        ExtendedIterator prop = m.listDatatypeProperties();
-        while (prop.hasNext()) {
-            OntProperty p = (OntProperty) prop.next();
 
-            if(p.getLocalName() != null) {
-
-                String ns = p.getNameSpace();
-                String pClass = p.getDomain().getLocalName();
-                String pName =  pClass + "_"+ p.getLocalName();
-
-                System.out.println("Class: " + pClass + " Prop: " + pName);
-
-                outProperty += "'"+pName+"':{'id': '"+pName+"', 'name': '"+pName+"', 'n_type': 'prop' },\n";
-                outPropertyLink += "{ 'source':'" + pName + "', 'target': '" + pClass + "'},\n";
-            }
+        // Получить ObjectProperties
+        String[] outP = prepareProperty(m.listObjectProperties(), NamedModel, "oprop");
+        outProperty += outP[0];
+        outPropertyLink += outP[1];
 
 
-        }
+        // Получить DatatypeProperties
+        outP = prepareProperty(m.listDatatypeProperties(), NamedModel, "dprop");
+        outProperty += outP[0];
+        outPropertyLink += outP[1];
+
+
+        // Подготовка перед выводом
+        // Проще тут всё заменить чем городить \"\"\"
+        outClasses = outClasses.replaceAll("'","\"");
+        outProperty = outProperty.replaceAll("'","\"").substring(0, outProperty.length() - 2);
+        outSubClassLink = outSubClassLink.replaceAll("'","\"");
+        outPropertyLink = outPropertyLink.replaceAll("'","\"").substring(0, outPropertyLink.length() - 2);
+
+
+
 
         System.out.println( "{  \"nodes\": {");
 
@@ -151,6 +148,32 @@ public class StoreTDB {
 
     }
 
+
+    public String[] prepareProperty (ExtendedIterator prop, String idPref, String n_type){
+        String outProp = "";
+        String outLink = "";
+        Integer pid = 0;
+
+        while (prop.hasNext()) {
+            OntProperty p = (OntProperty) prop.next();
+
+            if(p.getLocalName() != null) {
+                pid++;
+                String ns = p.getNameSpace();
+                String pClass = p.getDomain().getLocalName();
+                String pName =  pClass + "_"+ p.getLocalName();
+                String pNameLocal =  p.getLocalName();
+
+                System.out.println("Class: " + pClass + " Prop: " + pName);
+
+                outProp += "'"+pName+"':{'id': '"+idPref+"_"+n_type+"_"+pid+"', 'name': '"+pNameLocal+"', 'ont': '"+idPref+"', 'n_type': '"+n_type+"' },\n";
+                outLink += "{ 'source':'" + pName + "', 'target': '" + pClass + "'},\n";
+            }
+
+
+        }
+        return new String[] {outProp, outLink };
+    }
 
 
 
