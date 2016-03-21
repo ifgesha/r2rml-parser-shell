@@ -101,9 +101,15 @@ public class StoreTDB {
                 OntClass cla = m.getOntClass(ns + vClasse);
                 if (essaClasse.hasSubClass() ) {
                     for (Iterator i = cla.listSubClasses(); i.hasNext(); ) {
-                        OntClass c = (OntClass) i.next();
-                        System.out.print("         sub: " + c.getLocalName() + " " + "\n");
-                        outSubClassLink += "{ 'source':'" + c.getLocalName() + "', 'target': '" + vClasse + "'},\n";
+                        OntClass subC = (OntClass) i.next();
+                        System.out.print("         sub: " + subC.getLocalName() + " " + "\n");
+                        pid++;
+                        String subName = "subclass_"+ subC.getLocalName();
+
+                        outClasses += "'"+subName+"':{'id': '"+NamedModel+"_subclass_"+pid+"', 'name': 'Subclass of', 'ont': '"+NamedModel+"', 'n_type':'subclass' },\n";
+
+                        outSubClassLink += "{ 'source':'" + subC.getLocalName() + "', 'target': '" + subName + "', 'l_type':'subclass'},\n";
+                        outSubClassLink += "{ 'source':'" + subName + "', 'target': '" + vClasse + "', 'l_type':'subclass'},\n";
                     }
                 }
 
@@ -160,14 +166,25 @@ public class StoreTDB {
             if(p.getLocalName() != null) {
                 pid++;
                 String ns = p.getNameSpace();
-                String pClass = p.getDomain().getLocalName();
-                String pName =  pClass + "_"+ p.getLocalName();
+                String classDonain = p.getDomain().getLocalName();
+                String pName =  classDonain + "_"+ p.getLocalName();
                 String pNameLocal =  p.getLocalName();
 
-                System.out.println("Class: " + pClass + " Prop: " + pName);
+                System.out.println("Class: " + classDonain + " Prop: " + pName);
 
                 outProp += "'"+pName+"':{'id': '"+idPref+"_"+n_type+"_"+pid+"', 'name': '"+pNameLocal+"', 'ont': '"+idPref+"', 'n_type': '"+n_type+"' },\n";
-                outLink += "{ 'source':'" + pName + "', 'target': '" + pClass + "'},\n";
+
+                // Линки
+                if(n_type.equals("oprop")){
+                    String classRange = p.getRange().getLocalName();
+                    outLink += "{ 'source':'" + pName + "', 'target': '" + classRange + "', 'l_type':'oprop'},\n";
+                    outLink += "{ 'source':'" + classDonain + "', 'target': '" + pName + "', 'l_type':'oprop'},\n";
+                }else{
+                    outLink += "{ 'source':'" + pName + "', 'target': '" + classDonain + "', 'l_type':'dprop'},\n";
+                }
+
+
+
             }
 
 

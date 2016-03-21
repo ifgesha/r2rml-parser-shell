@@ -93,7 +93,7 @@ public class OWLgenerator {
                                 "WHERE  TABLE_SCHEMA = '"+dbName+"' and referenced_table_name IS NOT NULL AND TABLE_NAME='"+tableName+"' ";
                         resultColumns = db.query(q);
 
-                        // Ролучить данные по таблицам входящим во внешние ключи
+                        // Получить данные по таблицам входящим во внешние ключи
                         resultColumns.next();
                         String ReferencedTableName1 = resultColumns.getString(2);
                         String ReferencedColumnName1 = resultColumns.getString(3);
