@@ -49,7 +49,6 @@ public class MainConsole {
 
             if(args[0].equals("createOWL")){
                 file =  ParserPath + "result/Ontology.rdf";
-
                 OWLgenerator owlGen = new OWLgenerator();
                 owlGen.setDb(db);
                 owlGen.setLog(log);
@@ -60,7 +59,6 @@ public class MainConsole {
 
 
             if(args[0].equals("createMapFile")){
-                //file = ParserPath + properties.getProperty("mapping.file");
                 file =  ParserPath + "result/MappingFile";
                 MapGenerator mg = new MapGenerator();
                 mg.setDb(db);
@@ -69,20 +67,22 @@ public class MainConsole {
                 res =  mg.makeR2RML();
             }
 
-
-            if(res != "") {
-                // Записать в файл
-                log.info("Write to file " + file);
+            if(args[0].equals("ont2d3")){
                 try {
-                    PrintWriter writer = new PrintWriter(file, "UTF-8");
-                    writer.println(res);
-                    writer.close();
-                } catch (IOException ex) {
-                    log.error("Error write map file (" + file + ")." + ex.toString());
+                    file =  ParserPath + "result/ont2d3.json";
+                    String ontFile =  ParserPath + args[1];
+                    Owl2d3  o2d3 = new Owl2d3();
+                    res = o2d3.MakeD3Json("ont1",  o2d3.ReadModelFromFile(ontFile, ""));
+                }catch (RuntimeException e){
+                    log.error(e.toString());
                 }
-            }else{
+            }
 
-                // Записать в файл
+
+            // Записать в файл
+            if(res != "") {
+                Util.StringToFile(file, res);
+            }else{
                 log.info("Result is NULL !!!");
             }
 

@@ -57,18 +57,9 @@ public class Main {
 
 
         if(tripletMap != null) {
-
             // Записать в файл
             String file =  ParserPath + properties.getProperty("mapping.file");
-            log.info("Write triplet to file " + file);
-
-            try {
-                PrintWriter writer = new PrintWriter(file, "UTF-8");
-                writer.println(tripletMap);
-                writer.close();
-            } catch (IOException ex) {
-                log.error("Error write map file (" + file + ")." + ex.toString());
-            }
+            Util.StringToFile(file, tripletMap);
         }
     }
 
@@ -88,20 +79,21 @@ public class Main {
         String owl =  owlGen.createOWL(true);
 
         // Записать в файл
-        String file =  ParserPath + "Ontology.rdf";
-        log.info("Write owl to map file " + file);
-        try {
-            PrintWriter writer = new PrintWriter(file, "UTF-8");
-            writer.println(owl);
-            writer.close();
-        } catch (IOException ex) {
-            log.error("Error write map file (" + file + ")." + ex.toString());
-        }
+        Util.StringToFile(ParserPath + "Ontology.rdf", owl);
     }
 
 
     public static void readTDB() {
-        System.out.println("CreateOWL");
+        System.out.println("readTDB");
+        Owl2d3  o2d3 = new Owl2d3();
+        String file =  ParserPath + "d.owl";
+        String res = o2d3.MakeD3Json("ont1",  o2d3.ReadModelFromFile(file, ""));
+        Util.StringToFile(ParserPath + "o2d3.json", res);
+
+
+       /*
+
+
         StoreTDB  tdb = new StoreTDB();
         tdb.setProperties(properties);
         tdb.setLog(log);
@@ -111,9 +103,17 @@ public class Main {
         List<String> modelName = tdb.getNamedModelList();
         for(Iterator<String> i = modelName.iterator(); i.hasNext(); ) {
             String mName = i.next();
-            tdb.getOwlClasses(mName);
+           // tdb.getOwlClasses(mName);
         }
+
+        tdb.getOwlClasses("model_d");
+
         //tdb.getOwlClasses(""); // Список классов модели DefaultModel
+
+      //  tdb.ReadModelFromFile1(ParserPath+"/", "http://xxx.com/" );
+        */
+
+
     }
 
 

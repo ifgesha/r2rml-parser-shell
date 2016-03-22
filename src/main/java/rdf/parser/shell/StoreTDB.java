@@ -8,9 +8,12 @@ import com.hp.hpl.jena.query.Dataset;
 import com.hp.hpl.jena.query.ReadWrite;
 import com.hp.hpl.jena.rdf.model.*;
 import com.hp.hpl.jena.tdb.TDBFactory;
+import com.hp.hpl.jena.util.FileManager;
 import com.hp.hpl.jena.util.iterator.ExtendedIterator;
 import gr.seab.r2rml.entities.MappingDocument;
 
+import java.io.InputStream;
+import java.io.StringWriter;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -23,18 +26,18 @@ public class StoreTDB {
     private String jenaTdbDirectory = "tdb_ont4rdb";
 
 
-    public List<String> getNamedModelList () {
+    public List<String> getNamedModelList() {
         Iterator<String> modelName;
         List<String> myList = new CopyOnWriteArrayList<String>();
 
         // Получить модель из TDB
         Dataset dataset = TDBFactory.createDataset(jenaTdbDirectory);
         dataset.begin(ReadWrite.READ);
-            modelName = dataset.listNames();     // Список именованых моделей
+        modelName = dataset.listNames();     // Список именованых моделей
         dataset.end();
 
         while (modelName.hasNext()) {
-            String mName =  modelName.next();
+            String mName = modelName.next();
             myList.add(mName);
             System.out.println("TDB Model : " + mName);
         }
@@ -44,7 +47,11 @@ public class StoreTDB {
 
 
 
-    public void getOwlClasses (String NamedModel) {
+
+
+
+
+    public OntModel getOntModelFromTDB (String NamedModel) {
         Model model;
 
         String outClasses = "";
@@ -81,116 +88,10 @@ public class StoreTDB {
         //writeNamedModelTDB(m, "model4", false);
 
 
-
-        // Итератор классов модели
-        ExtendedIterator classes = m.listClasses();
-
-        // Перебор классов
-        while (classes.hasNext()) {
-            OntClass essaClasse = (OntClass) classes.next();
-
-            if(essaClasse.getLocalName() != null){
-
-                cid ++;
-                String ns = essaClasse.getNameSpace();
-                String vClasse = essaClasse.getLocalName();
-                System.out.println("Classe: " + vClasse);
-                outClasses += "'"+vClasse+"':{'id': '"+NamedModel+"_c"+cid+"', 'name': '"+vClasse+"', 'ont': '"+NamedModel+"', 'n_type': 'class' },\n";
-
-                // Перебор подклассов
-                OntClass cla = m.getOntClass(ns + vClasse);
-                if (essaClasse.hasSubClass() ) {
-                    for (Iterator i = cla.listSubClasses(); i.hasNext(); ) {
-                        OntClass subC = (OntClass) i.next();
-                        System.out.print("         sub: " + subC.getLocalName() + " " + "\n");
-                        pid++;
-                        String subName = "subclass_"+ subC.getLocalName();
-
-                        outClasses += "'"+subName+"':{'id': '"+NamedModel+"_subclass_"+pid+"', 'name': 'Subclass of', 'ont': '"+NamedModel+"', 'n_type':'subclass' },\n";
-
-                        outSubClassLink += "{ 'source':'" + subC.getLocalName() + "', 'target': '" + subName + "', 'l_type':'subclass'},\n";
-                        outSubClassLink += "{ 'source':'" + subName + "', 'target': '" + vClasse + "', 'l_type':'subclass'},\n";
-                    }
-                }
-
-            }
-        }
-
-
-        // Получить ObjectProperties
-        String[] outP = prepareProperty(m.listObjectProperties(), NamedModel, "oprop");
-        outProperty += outP[0];
-        outPropertyLink += outP[1];
-
-
-        // Получить DatatypeProperties
-        outP = prepareProperty(m.listDatatypeProperties(), NamedModel, "dprop");
-        outProperty += outP[0];
-        outPropertyLink += outP[1];
-
-
-        // Подготовка перед выводом
-        // Проще тут всё заменить чем городить \"\"\"
-        outClasses = outClasses.replaceAll("'","\"");
-        outProperty = outProperty.replaceAll("'","\"").substring(0, outProperty.length() - 2);
-        outSubClassLink = outSubClassLink.replaceAll("'","\"");
-        outPropertyLink = outPropertyLink.replaceAll("'","\"").substring(0, outPropertyLink.length() - 2);
-
-
-
-
-        System.out.println( "{  \"nodes\": {");
-
-        System.out.println( outClasses);
-        System.out.println( outProperty);
-
-        System.out.println( "},\"links\": [");
-
-        System.out.println( outSubClassLink);
-        System.out.println( outPropertyLink);
-
-        System.out.println("]}");
-
+        return m;
 
     }
 
-
-    public String[] prepareProperty (ExtendedIterator prop, String idPref, String n_type){
-        String outProp = "";
-        String outLink = "";
-        Integer pid = 0;
-
-        while (prop.hasNext()) {
-            OntProperty p = (OntProperty) prop.next();
-
-            if(p.getLocalName() != null) {
-                pid++;
-                String ns = p.getNameSpace();
-                String classDonain = p.getDomain().getLocalName();
-                String pName =  classDonain + "_"+ p.getLocalName();
-                String pNameLocal =  p.getLocalName();
-
-                System.out.println("Class: " + classDonain + " Prop: " + pName);
-
-                outProp += "'"+pName+"':{'id': '"+idPref+"_"+n_type+"_"+pid+"', 'name': '"+pNameLocal+"', 'ont': '"+idPref+"', 'n_type': '"+n_type+"' },\n";
-
-                // Линки
-                if(n_type.equals("oprop")){
-                    String classRange = p.getRange().getLocalName();
-                    outLink += "{ 'source':'" + pName + "', 'target': '" + classRange + "', 'l_type':'oprop'},\n";
-                    outLink += "{ 'source':'" + classDonain + "', 'target': '" + pName + "', 'l_type':'oprop'},\n";
-                }else{
-                    outLink += "{ 'source':'" + pName + "', 'target': '" + classDonain + "', 'l_type':'dprop'},\n";
-                }
-
-
-
-            }
-
-
-        }
-        return new String[] {outProp, outLink };
-    }
 
 
 
