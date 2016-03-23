@@ -1,9 +1,6 @@
 package rdf.parser.shell;
 
-import com.hp.hpl.jena.ontology.OntClass;
-import com.hp.hpl.jena.ontology.OntModel;
-import com.hp.hpl.jena.ontology.OntModelSpec;
-import com.hp.hpl.jena.ontology.OntProperty;
+import com.hp.hpl.jena.ontology.*;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.util.FileManager;
@@ -140,27 +137,38 @@ public class Owl2d3 {
         while (prop.hasNext()) {
             OntProperty p = (OntProperty) prop.next();
 
-            if(p.getLocalName() != null && p.getDomain() != null) {
-                pid++;
-                String ns = p.getNameSpace();
-                String classDonain = p.getDomain().getLocalName();
-                String pName =  classDonain + "_"+ p.getLocalName();
-                String pNameLocal =  p.getLocalName();
 
-                log.info("Class: " + classDonain + " Prop: " + pName);
+            if (p.getLocalName() != null && p.getDomain() != null ) {
 
-                outProp += "'"+pName+"':{'id': '"+idPref+"_"+n_type+"_"+pid+"', 'name': '"+pNameLocal+"', 'ont': '"+idPref+"', 'n_type': '"+n_type+"' },\n";
+                // Перебрать все домены (у свойства их может быть несколько)
+                ExtendedIterator d = p.listDomain();
 
-                // Линки
-                if(n_type.equals("oprop")){
-                    String classRange = p.getRange().getLocalName();
-                    outLink += "{ 'source':'" + pName + "', 'target': '" + classRange + "', 'l_type':'oprop'},\n";
-                    outLink += "{ 'source':'" + classDonain + "', 'target': '" + pName + "', 'l_type':'oprop'},\n";
-                }else{
-                    outLink += "{ 'source':'" + pName + "', 'target': '" + classDonain + "', 'l_type':'dprop'},\n";
+                while (d.hasNext()) {
+
+                    OntResource domain  = (OntResource) d.next();
+
+                    pid++;
+                    String ns = p.getNameSpace();
+                    //String classDonain = p.getDomain().getLocalName();
+                    String classDonain = domain.getLocalName();
+                    String pName = classDonain + "_" + p.getLocalName();
+                    String pNameLocal = p.getLocalName();
+
+                    log.info("Class: " + classDonain + " Prop: " + pName);
+
+                    outProp += "'" + pName + "':{'id': '" + idPref + "_" + n_type + "_" + pid + "', 'name': '" + pNameLocal + "', 'ont': '" + idPref + "', 'n_type': '" + n_type + "' },\n";
+
+                    // Линки
+
+                    if (p.getRange() != null && n_type.equals("oprop")) {
+                        String classRange = p.getRange().getLocalName();
+                        outLink += "{ 'source':'" + pName + "', 'target': '" + classRange + "', 'l_type':'"+n_type+"'},\n";
+                        outLink += "{ 'source':'" + classDonain + "', 'target': '" + pName + "', 'l_type':'"+n_type+"'},\n";
+                    } else {
+                        outLink += "{ 'source':'" + pName + "', 'target': '" + classDonain + "', 'l_type':'"+n_type+"'},\n";
+                    }
+
                 }
-
-
 
             }
 
