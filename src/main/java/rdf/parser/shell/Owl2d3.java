@@ -33,7 +33,7 @@ public class Owl2d3 {
             throw new RuntimeException(err);
         }
 
-         return m;
+        return m;
 
     }
 
@@ -46,6 +46,7 @@ public class Owl2d3 {
         String outSubClassLink = "";
         String outProperty = "";
         String outPropertyLink = "";
+        String outList = "";
         Integer cid = 0;
         Integer pid = 0;
 
@@ -94,18 +95,20 @@ public class Owl2d3 {
         String[] outP = prepareProperty(m.listObjectProperties(), NamedModel, "oprop");
         outProperty += outP[0];
         outPropertyLink += outP[1];
-
+        outList += outP[2];
 
         // Получить DatatypeProperties
         outP = prepareProperty(m.listDatatypeProperties(), NamedModel, "dprop");
         outProperty += outP[0];
         outPropertyLink += outP[1];
-
+        outList += outP[2];
 
         // Получить InverseFunctionalProperties
         outP = prepareProperty(m.listInverseFunctionalProperties(), NamedModel, "iprop");
         outProperty += outP[0];
         outPropertyLink += outP[1];
+        outList += outP[2];
+
 
 
         // Подготовка перед выводом
@@ -114,24 +117,30 @@ public class Owl2d3 {
         outProperty = outProperty.replaceAll("'","\"").substring(0, outProperty.length() - 2);
         outSubClassLink = outSubClassLink.replaceAll("'","\"");
         outPropertyLink = outPropertyLink.replaceAll("'","\"").substring(0, outPropertyLink.length() - 2);
+        outList = outList.replaceAll("'","\"").substring(0, outList.length() - 2);
 
 
         // Готовим вывод
-        result +=  "{  \"nodes\": {";
+        result +=  "{  \"nodes\": \n{";
         result +=  outClasses;
         result +=  outProperty;
-        result +=  "},\"links\": [";
+        result +=  "}\n,\"links\": \n[";
         result +=  outSubClassLink;
         result +=  outPropertyLink;
+        //result +=  "]}";
+        result +=  "]\n,\"list\": \n[";
+        result +=  outList;
         result +=  "]}";
-
         return result;
     }
+
+
 
 
     public String[] prepareProperty (ExtendedIterator prop, String idPref, String n_type){
         String outProp = "";
         String outLink = "";
+        String outList = "";
         Integer pid = 0;
 
         while (prop.hasNext()) {
@@ -149,24 +158,27 @@ public class Owl2d3 {
 
                     pid++;
                     String ns = p.getNameSpace();
-                    //String classDonain = p.getDomain().getLocalName();
-                    String classDonain = domain.getLocalName();
-                    String pName = classDonain + "_" + p.getLocalName();
+                    //String classDomain = p.getDomain().getLocalName();
+                    String classDomain = domain.getLocalName();
+                    String pName = classDomain + "_" + p.getLocalName();
                     String pNameLocal = p.getLocalName();
 
-                    log.info("Class: " + classDonain + " Prop: " + pName);
+                    log.info("Class: " + classDomain + " Prop: " + pName);
 
                     outProp += "'" + pName + "':{'id': '" + idPref + "_" + n_type + "_" + pid + "', 'name': '" + pNameLocal + "', 'ont': '" + idPref + "', 'n_type': '" + n_type + "' },\n";
 
                     // Линки
-
+                    String classRange = "";
                     if (p.getRange() != null && n_type.equals("oprop")) {
-                        String classRange = p.getRange().getLocalName();
+                        classRange = p.getRange().getLocalName();
                         outLink += "{ 'source':'" + pName + "', 'target': '" + classRange + "', 'l_type':'"+n_type+"'},\n";
-                        outLink += "{ 'source':'" + classDonain + "', 'target': '" + pName + "', 'l_type':'"+n_type+"'},\n";
+                        outLink += "{ 'source':'" + classDomain + "', 'target': '" + pName + "', 'l_type':'"+n_type+"'},\n";
                     } else {
-                        outLink += "{ 'source':'" + pName + "', 'target': '" + classDonain + "', 'l_type':'"+n_type+"'},\n";
+                        outLink += "{ 'source':'" + pName + "', 'target': '" + classDomain + "', 'l_type':'"+n_type+"'},\n";
                     }
+
+
+                    outList += "{ 'name':'" + p.getLocalName() + "', 'domain': '" + classDomain + "', 'range': '" + classRange + "', 'n_type':'"+n_type+"'},\n";
 
                 }
 
@@ -174,7 +186,7 @@ public class Owl2d3 {
 
 
         }
-        return new String[] {outProp, outLink };
+        return new String[] {outProp, outLink, outList};
     }
 
 
