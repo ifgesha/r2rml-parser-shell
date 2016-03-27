@@ -88,7 +88,10 @@ public class Main {
         Owl2d3  o2d3 = new Owl2d3();
         String file =  ParserPath + "d.owl";
         String res = o2d3.MakeD3Json("ont1",  o2d3.ReadModelFromFile(file, ""));
-        Util.StringToFile(ParserPath + "o2d3.json", res);
+
+        log.info("o2d3 result \n" + res);
+
+        //Util.StringToFile(ParserPath + "o2d3.json", res);
 
 
        /*

@@ -5,6 +5,7 @@ import org.apache.commons.lang.StringUtils;
 
 import java.io.*;
 import java.util.Properties;
+import java.util.UUID;
 
 public class MainConsole {
 
@@ -69,10 +70,13 @@ public class MainConsole {
 
             if(args[0].equals("ont2d3")){
                 try {
-                    file =  ParserPath + "result/ont2d3.json";
-                    String ontFile =  ParserPath + args[1];
+                    file =  ParserPath + "result/"+args[1];
+                    String ontFile =  ParserPath + "upload/ont2d3.owl";
                     Owl2d3  o2d3 = new Owl2d3();
-                    res = o2d3.MakeD3Json("ont1",  o2d3.ReadModelFromFile(ontFile, ""));
+
+                    String uniqueID = "ont_"+ UUID.randomUUID().toString().replaceAll("-","_");
+
+                    res = o2d3.MakeD3Json( uniqueID,  o2d3.ReadModelFromFile(ontFile, ""));
                 }catch (RuntimeException e){
                     log.error(e.toString());
                 }
